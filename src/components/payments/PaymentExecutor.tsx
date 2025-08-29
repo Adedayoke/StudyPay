@@ -18,6 +18,8 @@ import {
   PaymentResult 
 } from '@/lib/solana/payment';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
+import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
+import { Transaction } from '@/lib/types/payment';
 
 // =============================================================================
 // Payment Executor Component
@@ -93,21 +95,50 @@ export function PaymentExecutor({
     setIsExecuting(true);
     setError('');
 
+    // Create initial transaction record
+    const newTransaction = addTransaction({
+      fromAddress: wallet.publicKey.toString(),
+      toAddress: paymentRequest.recipient.toString(),
+      amount: paymentRequest.amount,
+      status: 'pending',
+      timestamp: new Date(),
+      purpose: paymentRequest.memo || 'Campus Payment'
+    });
+
     try {
       const result = await executePaymentFlow(
         connection,
         wallet, // Pass the complete wallet object
         paymentRequest,
-        (status) => setPaymentStatus(status)
+        (status) => {
+          setPaymentStatus(status);
+          // Update transaction status
+          updateTransaction(newTransaction.id, { 
+            status: status === 'confirmed' ? 'confirmed' : 'pending'
+          });
+        }
       );
 
       if (result.status === 'confirmed') {
+        // Update transaction with signature and final status
+        updateTransaction(newTransaction.id, {
+          status: 'confirmed',
+          signature: result.signature
+        });
         onSuccess(result.signature);
       } else {
+        // Update transaction as failed
+        updateTransaction(newTransaction.id, {
+          status: 'failed'
+        });
         onError(result.error || 'Payment failed');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown payment error';
+      // Update transaction as failed
+      updateTransaction(newTransaction.id, {
+        status: 'failed'
+      });
       setError(errorMessage);
       onError(errorMessage);
     } finally {
