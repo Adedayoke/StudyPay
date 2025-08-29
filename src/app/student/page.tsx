@@ -53,8 +53,8 @@ export default function StudentDashboard() {
   };
 
   const handlePaymentConfirm = () => {
-    // In a real app, this would process the payment
-    console.log('Processing payment:', paymentUrl);
+    // Payment completion is now handled by PaymentExecutor component
+    // This will be called when payment is successful
     setShowConfirmation(false);
     setPaymentUrl('');
     // Refresh balance after payment
@@ -216,22 +216,22 @@ export default function StudentDashboard() {
                 ✕
               </button>
             </div>
-            <QRPaymentScanner onPaymentScanned={handleQRScanned} />
+            <QRPaymentScanner 
+              onPaymentDetected={handleQRScanned}
+              onError={(error) => console.error('Scanner error:', error)}
+            />
           </div>
         </div>
       )}
 
       {/* Payment Confirmation Modal */}
       {showConfirmation && paymentUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <PaymentConfirmation
-              paymentUrl={paymentUrl}
-              onConfirm={handlePaymentConfirm}
-              onCancel={handlePaymentCancel}
-            />
-          </div>
-        </div>
+        <PaymentConfirmation
+          paymentURL={paymentUrl}
+          onConfirm={handlePaymentConfirm}
+          onCancel={handlePaymentCancel}
+          isVisible={showConfirmation}
+        />
       )}
     </div>
   );
