@@ -5,22 +5,18 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, Button, Alert, Badge, Input } from "@/components/ui";
 import {
   WalletGuard,
-  useStudyPayWallet,
 } from "@/components/wallet/WalletProvider";
 import ParentTransfer from "@/components/transfers/ParentTransfer";
 import StudentManagement from "@/components/transfers/StudentManagement";
 import TransactionHistory from "@/components/transactions/TransactionHistory";
-import { formatCurrency, solToNaira, nairaToSol } from "@/lib/solana/utils";
-import {
-  getTransactionsForAddress,
-} from "@/lib/utils/transactionStorage";
-import { Transaction } from "@/lib/types/payment";
+import { formatCurrency, solToNaira } from "@/lib/solana/utils";
 import { getMockStudentAddress } from "@/lib/solana/payment";
 import BigNumber from "bignumber.js";
+import { useParentDashboard } from "@/hooks/parent";
 
 interface Student {
   id: string;
@@ -50,78 +46,20 @@ const initialStudents: Student[] = [
 ];
 
 export default function ParentDashboard() {
-  const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "transfer" | "students" | "history"
-  >("overview");
-
-  // Load transactions for current wallet
-  useEffect(() => {
-    if (publicKey) {
-      setTransactionsLoading(true);
-      try {
-        const parentTransactions = getTransactionsForAddress(
-          publicKey.toString()
-        );
-        setTransactions(parentTransactions);
-      } catch (error) {
-        console.error("Error loading transactions:", error);
-      } finally {
-        setTransactionsLoading(false);
-      }
-    }
-  }, [publicKey]);
-
-  // Refresh data after transfers
-  const handleTransferComplete = () => {
-    refreshBalance();
-    if (publicKey) {
-      const parentTransactions = getTransactionsForAddress(
-        publicKey.toString()
-      );
-      setTransactions(parentTransactions);
-    }
-  };
-
-  const handleStudentAdded = (newStudent: Omit<Student, "id" | "isActive">) => {
-    const student: Student = {
-      ...newStudent,
-      id: `student_${Date.now()}`,
-      isActive: true,
-    };
-    setStudents((prev) => [...prev, student]);
-  };
-
-  const handleStudentUpdated = (
-    studentId: string,
-    updates: Partial<Student>
-  ) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId ? { ...student, ...updates } : student
-      )
-    );
-  };
-
-  // Calculate statistics
-  const totalSent = transactions
-    .filter((tx) => tx.status === "confirmed")
-    .reduce((sum, tx) => sum.plus(tx.amount), new BigNumber(0));
-
-  const thisMonthSent = transactions
-    .filter((tx) => {
-      const isThisMonth =
-        new Date(tx.timestamp).getMonth() === new Date().getMonth();
-      return tx.status === "confirmed" && isThisMonth;
-    })
-    .reduce((sum, tx) => sum.plus(tx.amount), new BigNumber(0));
-
-  // Aliases for consistency with template
-  const totalSentThisMonth = thisMonthSent;
-  const connectedStudents = students.filter((s) => s.isActive);
+  const {
+    balance,
+    activeTab,
+    setActiveTab,
+    transactions,
+    transactionsLoading,
+    handleTransferComplete,
+    recentTransfers,
+    students,
+    connectedStudents,
+    handleStudentAdded,
+    handleStudentUpdated,
+    totalSentThisMonth
+  } = useParentDashboard();
 
   // Mock data for charts and recent transfers
   const spendingData = [
@@ -135,7 +73,7 @@ export default function ParentDashboard() {
     { category: "Emergency", amount: new BigNumber(0.3), percentage: 10 },
   ];
 
-  const recentTransfers = transactions.slice(0, 3);
+  // const recentTransfers = transactions.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-parent-gradient">

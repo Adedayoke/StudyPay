@@ -5,106 +5,52 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, Button, Alert, Badge } from '@/components/ui';
-import { WalletGuard, useStudyPayWallet, WalletButton } from '@/components/wallet/WalletProvider';
+import { WalletGuard, WalletButton } from '@/components/wallet/WalletProvider';
 import { QRPaymentScanner, PaymentConfirmation } from '@/components/payments/QRPayment';
 import TransactionHistory from '@/components/transactions/TransactionHistory';
 import VendorDiscovery from '@/components/vendors/VendorDiscovery';
 import VendorProfileView from '@/components/vendors/VendorProfileView';
 import StudentInsightsDashboard from '@/components/analytics/StudentInsightsDashboard';
-import { VendorProfile } from '@/lib/vendors/vendorRegistry';
+import { useStudentDashboard, useQRPayment } from '@/hooks/student';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
-import { transactionStorage } from '@/lib/utils/transactionStorage';
-import { Transaction } from '@/lib/types/payment';
-import BigNumber from 'bignumber.js';
 
 export default function StudentDashboard() {
-  const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
-  const [showScanner, setShowScanner] = useState(false);
-  const [paymentUrl, setPaymentUrl] = useState<string>('');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [refreshingBlockchain, setRefreshingBlockchain] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'vendors' | 'insights'>('overview');
-  const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
+  const { publicKey } = useWallet();
+  
+  const {
+    balance,
+    connected,
+    refreshBalance,
+    activeTab,
+    setActiveTab,
+    transactions,
+    transactionsLoading,
+    refreshingBlockchain,
+    refreshBlockchainTransactions,
+    loadTransactions,
+    selectedVendor,
+    handleVendorSelect,
+    handleVendorClose,
+    refreshAfterPayment,
+    recentTransactions,
+    hasTransactions,
+    isLowBalance
+  } = useStudentDashboard();
 
-  // Load transactions (blockchain + local)
-  useEffect(() => {
-    if (connected && publicKey) {
-      loadTransactions();
-    }
-  }, [connected, publicKey]);
+  const {
+    showScanner,
+    paymentUrl,
+    showConfirmation,
+    handleQRScanned,
+    handlePaymentConfirm,
+    handlePaymentCancel,
+    openScanner,
+    closeScanner
+  } = useQRPayment();
 
-  const loadTransactions = async () => {
-    if (!publicKey) return;
-    
-    setTransactionsLoading(true);
-    try {
-      console.log('Loading transactions for wallet:', publicKey.toString());
-      
-      // Get both blockchain and local transactions
-      const allTransactions = await transactionStorage.getAllTransactions(publicKey.toString());
-      
-      console.log(`Loaded ${allTransactions.length} total transactions`);
-      setTransactions(allTransactions);
-      
-    } catch (error) {
-      console.error('Error loading transactions:', error);
-      // Fallback to local transactions only
-      const localTransactions = transactionStorage.getStoredTransactions();
-      setTransactions(localTransactions);
-    } finally {
-      setTransactionsLoading(false);
-    }
-  };
-
-  // Refresh blockchain transactions manually
-  const refreshBlockchainTransactions = async () => {
-    if (!publicKey) return;
-    
-    setRefreshingBlockchain(true);
-    try {
-      console.log('Refreshing blockchain transactions...');
-      await transactionStorage.refreshBlockchainTransactions(publicKey.toString());
-      await loadTransactions();
-    } catch (error) {
-      console.error('Error refreshing blockchain transactions:', error);
-    } finally {
-      setRefreshingBlockchain(false);
-    }
-  };
-
-  const handleQRScanned = (url: string) => {
-    setPaymentUrl(url);
-    setShowScanner(false);
-    setShowConfirmation(true);
-  };
-
-  const handlePaymentConfirm = async () => {
-    // Payment completion is now handled by PaymentExecutor component
-    // This will be called when payment is successful
-    setShowConfirmation(false);
-    setPaymentUrl('');
-    // Refresh balance and transactions after payment
-    refreshBalance();
-    await loadTransactions(); // Use the new async method
-  };
-
-  const handlePaymentCancel = () => {
-    setShowConfirmation(false);
-    setPaymentUrl('');
-  };
-
-  const handleVendorSelect = (vendor: VendorProfile) => {
-    setSelectedVendor(vendor);
-    setActiveTab('vendors');
-  };
-
-  const handleVendorBack = () => {
-    setSelectedVendor(null);
-  };
 
   return (
     <div className="min-h-screen bg-student-gradient">
@@ -158,7 +104,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => {
                     setActiveTab('vendors');
-                    setSelectedVendor(null);
+                    handleVendorClose();
                   }}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'vendors'
@@ -211,7 +157,7 @@ export default function StudentDashboard() {
                   <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button 
-                      onClick={() => setShowScanner(true)}
+                      onClick={openScanner}
                       className="w-full"
                     >
                       📱 Scan & Pay
@@ -241,7 +187,7 @@ export default function StudentDashboard() {
               {selectedVendor ? (
                 <VendorProfileView
                   vendor={selectedVendor}
-                  onBack={handleVendorBack}
+                  onBack={handleVendorClose}
                   onPaymentRequest={(amount, memo) => {
                     // Handle payment request - could integrate with existing QR payment flow
                     console.log('Payment requested:', { amount: amount.toString(), memo });
@@ -486,7 +432,7 @@ export default function StudentDashboard() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Scan Payment QR</h3>
               <button 
-                onClick={() => setShowScanner(false)}
+                onClick={closeScanner}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ✕

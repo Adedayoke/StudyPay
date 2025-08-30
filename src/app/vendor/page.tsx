@@ -5,74 +5,58 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, Button, Alert, Badge } from '@/components/ui';
-import { WalletGuard, useStudyPayWallet, WalletButton } from '@/components/wallet/WalletProvider';
+import { WalletGuard, WalletButton } from '@/components/wallet/WalletProvider';
 import { QRPaymentGenerator } from '@/components/payments/QRPayment';
 import VendorAnalyticsDashboard from '@/components/analytics/VendorAnalyticsDashboard';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
-import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
-import BigNumber from 'bignumber.js';
-
-// Mock vendor data
-const vendorInfo = {
-  businessName: 'Mama Adunni\'s Kitchen',
-  category: 'Food & Beverages',
-  location: 'UNILAG Campus, Near Faculty of Arts',
-  isVerified: true
-};
-
-// Mock sales data
-const todaysSales = [
-  {
-    id: '1',
-    description: 'Jollof Rice with Chicken',
-    amount: new BigNumber(0.025),
-    studentId: 'student_123',
-    time: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-    signature: 'sig_xyz123'
-  },
-  {
-    id: '2',
-    description: 'Fried Rice + Plantain',
-    amount: new BigNumber(0.03),
-    studentId: 'student_456',
-    time: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    signature: 'sig_abc456'
-  }
-];
+import { useVendorDashboard } from '@/hooks/vendor';
+import { useVendorPayments } from '@/hooks/vendor';
+import { useVendorAnalytics } from '@/hooks/vendor';
 
 export default function VendorDashboard() {
-  const { balance, connected, publicKey } = useStudyPayWallet();
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'settings'>('overview');
-  const [activePayments, setActivePayments] = useState<number>(0);
-  const [completedPayments, setCompletedPayments] = useState(todaysSales);
+  const {
+    balance,
+    connected,
+    publicKey,
+    vendorInfo,
+    vendorProfile,
+    activeTab,
+    setActiveTab,
+    activePayments,
+    setActivePayments,
+    completedPayments,
+    setCompletedPayments,
+    handlePaymentComplete,
+    totalToday,
+    salesCount,
+    averageSale,
+    recentSales,
+    hasCompletedPayments,
+    isActive
+  } = useVendorDashboard();
 
-  // Get vendor profile (mock for now - in real app would fetch by wallet address)
-  const vendorProfile = vendorRegistry.getAllVendors().find(v => v.businessName === vendorInfo.businessName) || 
-    vendorRegistry.getAllVendors()[0]; // Fallback to first vendor
+  const {
+    paymentRequests,
+    isGeneratingQR,
+    createPaymentRequest,
+    getActiveRequests,
+    getCompletedRequests,
+    hasActiveRequests,
+    hasCompletedRequests
+  } = useVendorPayments();
 
-  const handlePaymentComplete = (signature: string) => {
-    console.log('Payment completed:', signature);
-    setActivePayments(prev => prev - 1);
-    
-    // Add to completed payments
-    const newPayment = {
-      id: Date.now().toString(),
-      description: 'New Sale',
-      amount: new BigNumber(0.02),
-      studentId: 'student_new',
-      time: new Date(),
-      signature
-    };
-    
-    setCompletedPayments(prev => [newPayment, ...prev]);
-  };
-
-  const totalToday = completedPayments.reduce(
-    (sum, payment) => sum.plus(payment.amount), 
-    new BigNumber(0)
-  );
+  const {
+    todaysSales,
+    weeklySales,
+    monthlySales,
+    todaysRevenue,
+    weeklyRevenue,
+    monthlyRevenue,
+    peakHours,
+    hasPeakHours
+  } = useVendorAnalytics(completedPayments);
 
   return (
     <div className="min-h-screen bg-vendor-gradient">
