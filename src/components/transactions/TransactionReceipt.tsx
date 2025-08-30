@@ -95,14 +95,20 @@ export default function TransactionReceipt({
           <div className="flex justify-between">
             <span className="text-gray-400">From</span>
             <span className="text-white font-mono text-sm">
-              {transaction.fromAddress.slice(0, 8)}...{transaction.fromAddress.slice(-8)}
+              {transaction.fromAddress ? 
+                `${transaction.fromAddress.slice(0, 8)}...${transaction.fromAddress.slice(-8)}` :
+                'N/A'
+              }
             </span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-gray-400">To</span>
             <span className="text-white font-mono text-sm">
-              {transaction.toAddress.slice(0, 8)}...{transaction.toAddress.slice(-8)}
+              {transaction.toAddress ? 
+                `${transaction.toAddress.slice(0, 8)}...${transaction.toAddress.slice(-8)}` :
+                transaction.otherPartyName || 'N/A'
+              }
             </span>
           </div>
 

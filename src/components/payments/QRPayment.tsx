@@ -27,17 +27,36 @@ import { PaymentExecutor, PaymentSuccess } from '@/components/payments/PaymentEx
 // =============================================================================
 
 interface QRGeneratorProps {
+  amount?: BigNumber;
+  recipientAddress?: string;
+  memo?: string;
   onPaymentGenerated?: (paymentURL: string) => void;
+  vendorAddress?: string;
+  onPaymentComplete?: (signature: string) => void;
 }
 
-export function QRPaymentGenerator({ onPaymentGenerated }: QRGeneratorProps) {
+export function QRPaymentGenerator({ 
+  amount: propAmount, 
+  recipientAddress, 
+  memo: propMemo, 
+  onPaymentGenerated, 
+  vendorAddress, 
+  onPaymentComplete 
+}: QRGeneratorProps) {
   const { publicKey } = useStudyPayWallet();
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState(propAmount?.toString() || '');
+  const [description, setDescription] = useState(propMemo || '');
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string | null>(null);
   const [paymentURL, setPaymentURL] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+
+  // Auto-generate QR when props are provided
+  useEffect(() => {
+    if (propAmount && recipientAddress && propMemo) {
+      generateQR();
+    }
+  }, [propAmount, recipientAddress, propMemo]);
 
   const generateQR = async () => {
     if (!amount || !description) {

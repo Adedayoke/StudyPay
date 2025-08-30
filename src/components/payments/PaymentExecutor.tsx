@@ -97,11 +97,15 @@ export function PaymentExecutor({
 
     // Create initial transaction record
     const newTransaction = addTransaction({
-      fromAddress: wallet.publicKey.toString(),
-      toAddress: paymentRequest.recipient.toString(),
+      description: paymentRequest.memo || 'Campus Payment',
       amount: paymentRequest.amount,
+      category: 'payment',
       status: 'pending',
       timestamp: new Date(),
+      type: 'outgoing',
+      // Legacy fields for compatibility
+      fromAddress: wallet.publicKey.toString(),
+      toAddress: paymentRequest.recipient.toString(),
       purpose: paymentRequest.memo || 'Campus Payment'
     });
 

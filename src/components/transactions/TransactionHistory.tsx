@@ -159,7 +159,7 @@ export default function TransactionHistory({
 
                   <div className="text-right">
                     <div className="text-white font-mono text-sm">
-                      To: {transaction.toAddress.slice(0, 8)}...
+                      To: {transaction.toAddress ? transaction.toAddress.slice(0, 8) + '...' : transaction.otherPartyName || 'Unknown'}
                     </div>
                     {transaction.signature && (
                       <div className="text-xs text-gray-400 font-mono">

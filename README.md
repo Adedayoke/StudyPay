@@ -344,3 +344,31 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 ---
 
 *Building the future of campus payments, one transaction at a time* ⚡🎓
+
+---
+
+## 📊 Real-Time Analytics & Monitoring (Phase 3)
+
+### Overview
+StudyPay now includes a comprehensive real-time analytics engine and dashboards for students, vendors, and campus administrators. These features provide actionable insights, live monitoring, and business intelligence across the entire payment ecosystem.
+
+### Key Features
+- **Vendor Analytics Dashboard**: Track daily/weekly/monthly sales, popular items, peak hours, and customer feedback. View revenue analytics in both SOL and Naira, and export transaction data for business records.
+- **Student Insights Dashboard**: Visualize personal spending patterns, category breakdowns (food, transport, academic), budget recommendations, and savings opportunities. Get alerts for unusual activity and price comparisons across vendors.
+- **Campus Analytics Dashboard**: Campus admins can monitor aggregate transaction volumes, vendor performance, student spending trends, and overall ecosystem health in real time.
+- **Live Monitoring**: All dashboards update instantly as transactions occur, leveraging the custom analytics engine for real-time data processing and visualization.
+- **Advanced Filtering & Export**: Filter analytics by date, category, or user type. Export insights and transaction data for reporting and compliance.
+
+### Technical Highlights
+- **Custom Analytics Engine**: Built in TypeScript, fully integrated with the dashboard architecture. Processes live transaction data and generates actionable insights for all user types.
+- **Type-Safe Interfaces**: All analytics features use professional TypeScript interfaces for reliability and maintainability.
+- **Modern UI**: Dashboards feature responsive, dark-themed visualizations matching Solana ecosystem standards.
+
+### How to Use
+- **Students**: Access the Student Insights Dashboard via `/student` to view personal analytics and budgeting tools.
+- **Vendors**: Access the Vendor Analytics Dashboard via `/vendor` for business intelligence and sales tracking.
+- **Admins**: Access the Campus Analytics Dashboard via `/admin` for campus-wide monitoring and reporting.
+
+---
+
+*Phase 3 analytics features are now live and fully integrated. StudyPay delivers not just payments, but deep financial insights for every campus stakeholder.*

@@ -7,41 +7,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Alert, Badge } from '@/components/ui';
-import { WalletGuard, useStudyPayWallet } from '@/components/wallet/WalletProvider';
+import { WalletGuard, useStudyPayWallet, WalletButton } from '@/components/wallet/WalletProvider';
 import { QRPaymentScanner, PaymentConfirmation } from '@/components/payments/QRPayment';
 import TransactionHistory from '@/components/transactions/TransactionHistory';
+import VendorDiscovery from '@/components/vendors/VendorDiscovery';
+import VendorProfileView from '@/components/vendors/VendorProfileView';
+import StudentInsightsDashboard from '@/components/analytics/StudentInsightsDashboard';
+import { VendorProfile } from '@/lib/vendors/vendorRegistry';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
-import { getStoredTransactions, getTransactionsForAddress } from '@/lib/utils/transactionStorage';
+import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
 import BigNumber from 'bignumber.js';
-
-// Mock data for demo
-const mockTransactions = [
-  {
-    id: '1',
-    description: 'Jollof Rice - Mama Adunni',
-    amount: new BigNumber(0.025),
-    category: 'food',
-    date: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    status: 'confirmed' as const
-  },
-  {
-    id: '2', 
-    description: 'Campus Shuttle - Gate to Faculty',
-    amount: new BigNumber(0.01),
-    category: 'transport',
-    date: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-    status: 'confirmed' as const
-  },
-  {
-    id: '3',
-    description: 'Document Printing - 20 pages',
-    amount: new BigNumber(0.008),
-    category: 'printing',
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-    status: 'confirmed' as const
-  }
-];
 
 export default function StudentDashboard() {
   const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
@@ -50,28 +26,53 @@ export default function StudentDashboard() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>('overview');
+  const [refreshingBlockchain, setRefreshingBlockchain] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'vendors' | 'insights'>('overview');
+  const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
 
-  // Load transactions for current wallet
+  // Load transactions (blockchain + local)
   useEffect(() => {
-    if (publicKey) {
-      setTransactionsLoading(true);
-      try {
-        const userTransactions = getTransactionsForAddress(publicKey.toString());
-        setTransactions(userTransactions);
-      } catch (error) {
-        console.error('Error loading transactions:', error);
-      } finally {
-        setTransactionsLoading(false);
-      }
+    if (connected && publicKey) {
+      loadTransactions();
     }
-  }, [publicKey]);
+  }, [connected, publicKey]);
 
-  // Refresh transactions after payment
-  const refreshTransactions = () => {
-    if (publicKey) {
-      const userTransactions = getTransactionsForAddress(publicKey.toString());
-      setTransactions(userTransactions);
+  const loadTransactions = async () => {
+    if (!publicKey) return;
+    
+    setTransactionsLoading(true);
+    try {
+      console.log('Loading transactions for wallet:', publicKey.toString());
+      
+      // Get both blockchain and local transactions
+      const allTransactions = await transactionStorage.getAllTransactions(publicKey.toString());
+      
+      console.log(`Loaded ${allTransactions.length} total transactions`);
+      setTransactions(allTransactions);
+      
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      // Fallback to local transactions only
+      const localTransactions = transactionStorage.getStoredTransactions();
+      setTransactions(localTransactions);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
+  // Refresh blockchain transactions manually
+  const refreshBlockchainTransactions = async () => {
+    if (!publicKey) return;
+    
+    setRefreshingBlockchain(true);
+    try {
+      console.log('Refreshing blockchain transactions...');
+      await transactionStorage.refreshBlockchainTransactions(publicKey.toString());
+      await loadTransactions();
+    } catch (error) {
+      console.error('Error refreshing blockchain transactions:', error);
+    } finally {
+      setRefreshingBlockchain(false);
     }
   };
 
@@ -81,19 +82,28 @@ export default function StudentDashboard() {
     setShowConfirmation(true);
   };
 
-  const handlePaymentConfirm = () => {
+  const handlePaymentConfirm = async () => {
     // Payment completion is now handled by PaymentExecutor component
     // This will be called when payment is successful
     setShowConfirmation(false);
     setPaymentUrl('');
     // Refresh balance and transactions after payment
     refreshBalance();
-    refreshTransactions();
+    await loadTransactions(); // Use the new async method
   };
 
   const handlePaymentCancel = () => {
     setShowConfirmation(false);
     setPaymentUrl('');
+  };
+
+  const handleVendorSelect = (vendor: VendorProfile) => {
+    setSelectedVendor(vendor);
+    setActiveTab('vendors');
+  };
+
+  const handleVendorBack = () => {
+    setSelectedVendor(null);
   };
 
   return (
@@ -108,6 +118,7 @@ export default function StudentDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="success">Student</Badge>
+              <WalletButton />
             </div>
           </div>
         </div>
@@ -143,6 +154,29 @@ export default function StudentDashboard() {
                       {transactions.length}
                     </span>
                   )}
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('vendors');
+                    setSelectedVendor(null);
+                  }}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'vendors'
+                      ? 'border-[#9945FF] text-[#9945FF]'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-gray-300'
+                  }`}
+                >
+                  🏪 Discover Vendors
+                </button>
+                <button
+                  onClick={() => setActiveTab('insights')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'insights'
+                      ? 'border-[#9945FF] text-[#9945FF]'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-gray-300'
+                  }`}
+                >
+                  🧠 Insights
                 </button>
               </nav>
             </div>
@@ -199,6 +233,35 @@ export default function StudentDashboard() {
             <TransactionHistory 
               transactions={transactions}
               isLoading={transactionsLoading}
+            />
+          )}
+
+          {activeTab === 'vendors' && (
+            <>
+              {selectedVendor ? (
+                <VendorProfileView
+                  vendor={selectedVendor}
+                  onBack={handleVendorBack}
+                  onPaymentRequest={(amount, memo) => {
+                    // Handle payment request - could integrate with existing QR payment flow
+                    console.log('Payment requested:', { amount: amount.toString(), memo });
+                    // Refresh transactions after payment
+                    loadTransactions();
+                  }}
+                />
+              ) : (
+                <VendorDiscovery
+                  onVendorSelect={handleVendorSelect}
+                  showSearch={true}
+                />
+              )}
+            </>
+          )}
+
+          {activeTab === 'insights' && (
+            <StudentInsightsDashboard
+              walletAddress={publicKey?.toBase58() || ''}
+              studentId={`student_${publicKey?.toBase58().slice(-8) || 'unknown'}`}
             />
           )}
 
@@ -274,36 +337,102 @@ export default function StudentDashboard() {
             </div>
             
             <div className="space-y-3">
-              {mockTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-2xl">
-                      {tx.category === 'food' && '🍽️'}
-                      {tx.category === 'transport' && '🚌'}
-                      {tx.category === 'printing' && '🖨️'}
+              {transactionsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solana-purple-500 mx-auto"></div>
+                  <p className="mt-2 text-dark-text-secondary">Loading transactions...</p>
+                </div>
+              ) : transactions.length > 0 ? (
+                <>
+                  {/* Show transaction type indicator */}
+                  {transactions.some(tx => tx.isBlockchainTransaction) && (
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-dark-text-secondary">Live blockchain data</span>
+                      </div>
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                        onClick={refreshBlockchainTransactions}
+                        disabled={refreshingBlockchain}
+                      >
+                        {refreshingBlockchain ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : (
+                          '🔄 Refresh'
+                        )}
+                      </Button>
                     </div>
-                    <div>
-                      <div className="font-medium text-sm">{tx.description}</div>
-                      <div className="text-xs text-gray-500">
-                        {tx.date.toLocaleDateString()} {tx.date.toLocaleTimeString()}
+                  )}
+                  
+                  {transactions.slice(0, 5).map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between p-3 bg-dark-bg-tertiary rounded-lg border border-dark-border-primary">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-2xl">
+                          {tx.category === 'food' && '🍽️'}
+                          {tx.category === 'transport' && '🚌'}
+                          {tx.category === 'books' && '📚'}
+                          {tx.category === 'services' && '🔧'}
+                          {tx.category === 'electronics' && '💻'}
+                          {tx.category === 'printing' && '🖨️'}
+                          {tx.category === 'micro' && '💰'}
+                          {tx.category === 'snacks' && '🍿'}
+                          {!['food', 'transport', 'books', 'services', 'electronics', 'printing', 'micro', 'snacks'].includes(tx.category) && '💳'}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm text-dark-text-primary">{tx.description}</div>
+                          <div className="text-xs text-dark-text-secondary flex items-center space-x-2">
+                            <span>{tx.timestamp.toLocaleDateString()} {tx.timestamp.toLocaleTimeString()}</span>
+                            {tx.isBlockchainTransaction && (
+                              <Badge variant="primary" className="text-xs px-1 py-0">
+                                Blockchain
+                              </Badge>
+                            )}
+                            {tx.otherPartyName && (
+                              <span>• {tx.otherPartyName}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className={`font-semibold ${tx.type === 'incoming' ? 'text-green-500' : 'text-red-400'}`}>
+                          {tx.type === 'incoming' ? '+' : '-'}{formatCurrency(tx.amount, 'SOL')}
+                        </div>
+                        <div className="text-xs text-dark-text-secondary">
+                          ≈ ₦{solToNaira(tx.amount).toFixed(0)}
+                        </div>
+                        <Badge variant={tx.status === 'confirmed' ? 'success' : 'warning'} className="text-xs mt-1">
+                          {tx.status}
+                        </Badge>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="font-semibold text-red-600">
-                      -{formatCurrency(tx.amount, 'SOL')}
+                  ))}
+                </>
+              ) : (
+                <div className="text-center py-8 text-dark-text-secondary">
+                  {connected ? (
+                    <div>
+                      <p>No transactions found.</p>
+                      <p className="text-sm mt-2">
+                        {publicKey ? 'Try making a payment or refreshing blockchain data.' : 'Connect your wallet to see transactions.'}
+                      </p>
+                      {publicKey && (
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="mt-3"
+                          onClick={refreshBlockchainTransactions}
+                          disabled={refreshingBlockchain}
+                        >
+                          {refreshingBlockchain ? 'Checking blockchain...' : 'Check blockchain transactions'}
+                        </Button>
+                      )}
                     </div>
-                    <Badge variant="success" className="text-xs">
-                      {tx.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-              
-              {mockTransactions.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No transactions yet. Start by scanning a payment QR code!
+                  ) : (
+                    'Connect your wallet to view transactions.'
+                  )}
                 </div>
               )}
             </div>
@@ -311,23 +440,41 @@ export default function StudentDashboard() {
 
           {/* Spending Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <Card className="text-center">
-              <div className="text-2xl mb-2">🍽️</div>
-              <div className="text-sm text-gray-600">Food & Drinks</div>
-              <div className="font-semibold">0.025 SOL</div>
-            </Card>
-            
-            <Card className="text-center">
-              <div className="text-2xl mb-2">🚌</div>
-              <div className="text-sm text-gray-600">Transport</div>
-              <div className="font-semibold">0.01 SOL</div>
-            </Card>
-            
-            <Card className="text-center">
-              <div className="text-2xl mb-2">📚</div>
-              <div className="text-sm text-gray-600">Academic</div>
-              <div className="font-semibold">0.008 SOL</div>
-            </Card>
+            {(() => {
+              // Calculate spending by category from real transactions
+              const categorySpending = transactions
+                .filter(tx => tx.type === 'outgoing' && tx.status === 'confirmed')
+                .reduce((acc, tx) => {
+                  const category = tx.category || 'other';
+                  acc[category] = (acc[category] || new BigNumber(0)).plus(tx.amount);
+                  return acc;
+                }, {} as Record<string, BigNumber>);
+
+              const categories = [
+                { key: 'food', emoji: '🍽️', label: 'Food & Drinks' },
+                { key: 'transport', emoji: '🚌', label: 'Transport' },
+                { key: 'books', emoji: '📚', label: 'Academic' }
+              ];
+
+              return categories.map(category => (
+                <Card key={category.key} className="text-center bg-dark-bg-secondary border-dark-border-primary">
+                  <div className="text-2xl mb-2">{category.emoji}</div>
+                  <div className="text-sm text-dark-text-secondary">{category.label}</div>
+                  <div className="font-semibold text-dark-text-primary">
+                    {categorySpending[category.key] 
+                      ? formatCurrency(categorySpending[category.key], 'SOL')
+                      : '0.000 SOL'
+                    }
+                  </div>
+                  <div className="text-xs text-dark-text-secondary mt-1">
+                    ≈ ₦{categorySpending[category.key] 
+                      ? solToNaira(categorySpending[category.key]).toFixed(0)
+                      : '0'
+                    }
+                  </div>
+                </Card>
+              ));
+            })()}
           </div>
         </WalletGuard>
       </main>

@@ -46,20 +46,22 @@ export const SOLANA_COLORS = {
     warning: '#F59E0B',     // Orange for warnings
     error: '#EF4444',       // Red for errors
     info: '#3B82F6',        // Blue for info
-  }
-} as const;
-    gray50: '#F9FAFB',      // Lightest background
+  },
+
+  // Neutral Colors
+  neutral: {
     white: '#FFFFFF',       // Pure white
+    gray50: '#F9FAFB',      // Lightest background
+    gray600: '#6B7280',     // Medium gray text
+    gray900: '#111827',     // Dark text
   },
-  
-  // Status Colors
-  status: {
-    success: '#10B981',     // Green for success
-    warning: '#F59E0B',     // Amber for warnings
-    error: '#EF4444',       // Red for errors
-    info: '#3B82F6',        // Blue for info
+
+  // Secondary Colors
+  secondary: {
+    blue: '#3B82F6',        // Blue
+    teal: '#14B8A6',        // Teal
   },
-  
+
   // Nigerian Context Colors (for StudyPay specifically)
   nigerian: {
     nairaGreen: '#008751',  // Nigerian flag green

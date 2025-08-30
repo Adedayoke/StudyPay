@@ -25,16 +25,27 @@ export interface TransactionStatus {
 export interface Transaction {
   id: string;
   signature?: string;
-  fromAddress: string;
-  toAddress: string;
+  description: string;
   amount: BigNumber;
-  status: 'pending' | 'confirmed' | 'finalized' | 'failed';
+  category: string;
   timestamp: Date;
+  status: 'pending' | 'confirmed' | 'finalized' | 'failed';
+  type: 'incoming' | 'outgoing';
+  
+  // Legacy fields for backward compatibility
+  fromAddress?: string;
+  toAddress?: string;
   purpose?: string;
   memo?: string;
+  
+  // Enhanced blockchain fields
+  otherParty?: string; // Address of the other party
+  otherPartyName?: string; // Human-readable name
+  location?: string; // Physical location if vendor
   fees?: BigNumber;
   confirmations?: number;
   blockHeight?: number;
+  isBlockchainTransaction?: boolean; // True for real blockchain txs
 }
 
 export interface WalletBalance {

@@ -97,6 +97,7 @@ const config: Config = {
         'student-gradient': 'linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #2D2D2D 100%)',
         'parent-gradient': 'linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #2D2D2D 100%)',
         'vendor-gradient': 'linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #2D2D2D 100%)',
+        'campus-gradient': 'linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #2D2D2D 100%)',
         
         // Accent gradients
         'solana-accent': 'linear-gradient(135deg, rgba(153, 69, 255, 0.1) 0%, rgba(153, 69, 255, 0.05) 100%)',

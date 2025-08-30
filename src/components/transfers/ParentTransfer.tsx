@@ -115,11 +115,15 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
 
       // Create transaction record
       const newTransaction = addTransaction({
-        fromAddress: wallet.publicKey.toString(),
-        toAddress: selectedStudent.walletAddress,
+        description: `Transfer to ${selectedStudent.name}: ${purpose}`,
         amount: new BigNumber(amount),
+        category: 'transfer',
         status: 'pending',
         timestamp: new Date(),
+        type: 'outgoing',
+        // Legacy fields for compatibility
+        fromAddress: wallet.publicKey.toString(),
+        toAddress: selectedStudent.walletAddress,
         purpose: `Transfer to ${selectedStudent.name}: ${purpose}`
       });
 
