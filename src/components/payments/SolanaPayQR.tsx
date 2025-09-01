@@ -29,12 +29,14 @@ interface SolanaPayQRGeneratorProps {
   paymentType: CampusPaymentType;
   onPaymentGenerated?: (paymentURL: string) => void;
   defaultParams?: Record<string, string>;
+  vendorWallet?: string; // Connected vendor's wallet address
 }
 
 export function SolanaPayQRGenerator({ 
   paymentType, 
   onPaymentGenerated,
-  defaultParams = {}
+  defaultParams = {},
+  vendorWallet
 }: SolanaPayQRGeneratorProps) {
   const [amount, setAmount] = useState(defaultParams.amount || '');
   const [description, setDescription] = useState(defaultParams.description || '');
@@ -60,12 +62,16 @@ export function SolanaPayQRGenerator({
     setError('');
 
     try {
-      // Create a real Solana Pay URL instead of transaction request
-      const vendorWallet = CAMPUS_MERCHANTS.food['mama-adunni']?.wallet || '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
-      console.log('Using vendor wallet:', vendorWallet);
+      // Use connected vendor wallet if available, otherwise fallback to merchant registry
+      const recipientWallet = vendorWallet || 
+        CAMPUS_MERCHANTS.food['mama-adunni']?.wallet || 
+        '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+      
+      console.log('Using vendor wallet:', recipientWallet);
+      console.log('Vendor connected wallet:', vendorWallet || 'None - using fallback');
       
       const solanaPayRequest: SolanaPayRequest = {
-        recipient: new PublicKey(vendorWallet),
+        recipient: new PublicKey(recipientWallet),
         amount: amountBN,
         label: `StudyPay - ${description}`,
         message: `Payment for ${description}`,
@@ -224,11 +230,18 @@ export function SolanaPayQRGenerator({
 // Campus-Specific QR Generators
 // =============================================================================
 
-export function FoodPaymentQR({ onPaymentGenerated }: { onPaymentGenerated?: (url: string) => void }) {
+export function FoodPaymentQR({ 
+  onPaymentGenerated, 
+  vendorWallet 
+}: { 
+  onPaymentGenerated?: (url: string) => void;
+  vendorWallet?: string;
+}) {
   return (
     <SolanaPayQRGenerator 
       paymentType="food" 
       onPaymentGenerated={onPaymentGenerated}
+      vendorWallet={vendorWallet}
       defaultParams={{
         vendor: 'mama-adunni'
       }}

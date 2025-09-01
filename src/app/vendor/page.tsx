@@ -171,6 +171,7 @@ export default function VendorDashboard() {
           <div>
             <h3 className="text-lg font-semibold mb-4 text-dark-text-primary">Create Payment Request</h3>
             <FoodPaymentQR
+              vendorWallet={publicKey?.toString()} // Pass connected wallet
               onPaymentGenerated={(url) => {
                 console.log('Payment URL generated:', url);
                 // Handle payment completion logic here

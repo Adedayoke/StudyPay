@@ -379,9 +379,10 @@ export async function executeSOLTransfer(
     throw new Error('Wallet not connected');
   }
 
-  if (!senderWallet.signTransaction) {
-    throw new Error('Wallet does not support transaction signing');
-  }
+  // Check if we're on mobile
+  const isMobile = typeof window !== 'undefined' && 
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+     window.innerWidth <= 768);
 
   try {
     // Create transfer transaction
@@ -409,9 +410,21 @@ export async function executeSOLTransfer(
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = senderWallet.publicKey;
 
-    // Sign and send transaction
-    const signed = await senderWallet.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(signed.serialize());
+    let signature: string;
+
+    // Use different signing methods for mobile vs desktop
+    if (isMobile && senderWallet.sendTransaction) {
+      // Mobile: Use sendTransaction for better mobile wallet compatibility
+      console.log('Mobile detected: Using sendTransaction');
+      signature = await senderWallet.sendTransaction(transaction, connection);
+    } else if (senderWallet.signTransaction) {
+      // Desktop: Use traditional sign + send flow
+      console.log('Desktop detected: Using signTransaction');
+      const signed = await senderWallet.signTransaction(transaction);
+      signature = await connection.sendRawTransaction(signed.serialize());
+    } else {
+      throw new Error('Wallet does not support transaction signing or sending');
+    }
 
     // Confirm transaction
     await connection.confirmTransaction(signature, 'confirmed');
