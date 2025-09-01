@@ -34,6 +34,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
     analyticsEngine.initializeRealTime();
 
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeframe]);
 
   const loadAnalytics = async () => {

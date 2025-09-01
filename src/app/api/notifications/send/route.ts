@@ -10,7 +10,7 @@ interface NotificationPayload {
   body: string;
   icon?: string;
   badge?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   actions?: Array<{
     action: string;
     title: string;
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       icon: notification.icon || '/icons/icon-192x192.png',
       badge: notification.badge || '/icons/icon-72x72.png',
       data: {
-        url: getUrlForNotificationType(notification.data?.type),
+        url: getUrlForNotificationType(notification.data?.type as string),
         ...notification.data
       },
       actions: notification.actions || [

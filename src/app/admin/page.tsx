@@ -9,10 +9,9 @@ import React, { useState } from 'react';
 import { Card, Button, Badge } from '@/components/ui';
 import { WalletGuard, useStudyPayWallet, WalletButton } from '@/components/wallet/WalletProvider';
 import CampusAnalyticsDashboard from '@/components/analytics/CampusAnalyticsDashboard';
-import { formatCurrency } from '@/lib/solana/utils';
 
 export default function CampusAdminDashboard() {
-  const { balance, connected, publicKey } = useStudyPayWallet();
+  const { publicKey } = useStudyPayWallet();
   const [activeTab, setActiveTab] = useState<'analytics' | 'vendors' | 'students' | 'system'>('analytics');
 
   return (

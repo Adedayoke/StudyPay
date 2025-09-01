@@ -9,7 +9,6 @@ import BigNumber from 'bignumber.js';
 
 // StudyPay merchant configuration
 const MERCHANT_WALLET = new PublicKey('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU'); // Demo wallet
-const MERCHANT_NAME = 'StudyPay Campus Merchant';
 
 /**
  * GET /api/pay - Create Solana Pay Transaction Request
@@ -91,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate the payer's account
-    const payerPublicKey = new PublicKey(account);
+    new PublicKey(account); // Just validate, don't store
 
     // In a real implementation, you would:
     // 1. Validate the transaction parameters

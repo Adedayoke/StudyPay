@@ -30,6 +30,7 @@ export default function StudentInsightsDashboard({
   useEffect(() => {
     loadInsights();
     loadVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId, selectedPeriod]);
 
   const loadInsights = async () => {
