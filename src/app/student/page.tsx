@@ -16,6 +16,8 @@ import VendorProfileView from '@/components/vendors/VendorProfileView';
 import StudentInsightsDashboard from '@/components/analytics/StudentInsightsDashboard';
 import { useStudentDashboard, useQRPayment } from '@/hooks/student';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { PWAStatusIndicator, PWANotificationPermission } from '@/components/pwa/PWAComponents';
+import { BigNumber } from 'bignumber.js';
 
 export default function StudentDashboard() {
   const { publicKey } = useWallet();
@@ -63,6 +65,7 @@ export default function StudentDashboard() {
               <span className="ml-2 text-sm text-dark-text-secondary">Student Dashboard</span>
             </div>
             <div className="flex items-center space-x-4">
+              <PWAStatusIndicator />
               <Badge variant="success">Student</Badge>
               <WalletButton />
             </div>

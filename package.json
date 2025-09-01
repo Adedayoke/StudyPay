@@ -19,13 +19,16 @@
     "@solana/wallet-adapter-phantom": "^0.9.28",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-solflare": "^0.6.32",
     "@solana/web3.js": "^1.98.4",
+    "@types/web-push": "^3.6.4",
     "bignumber.js": "^9.3.1",
     "next": "14.2.14",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.8.0",

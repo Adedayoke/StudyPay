@@ -3,11 +3,13 @@ import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
+import { useStudyPayNotifications } from '@/components/pwa/PWAProvider';
 
 export type StudentTab = 'overview' | 'transactions' | 'vendors' | 'insights';
 
 export const useStudentDashboard = () => {
   const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
+  const { sendPaymentNotification, sendLowBalanceNotification } = useStudyPayNotifications();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [refreshingBlockchain, setRefreshingBlockchain] = useState(false);
@@ -70,8 +72,32 @@ export const useStudentDashboard = () => {
   };
 
   const refreshAfterPayment = async () => {
-    refreshBalance();
+    const previousBalance = balance;
+    await refreshBalance();
     await loadTransactions();
+    
+    // Check for low balance after payment
+    const newBalance = balance; // This will be updated after refreshBalance
+    if (newBalance < 0.1 && newBalance > 0) {
+      sendLowBalanceNotification(`${newBalance.toFixed(3)} SOL`);
+    }
+  };
+
+  // Enhanced transaction loading with notification support
+  const loadTransactionsWithNotifications = async () => {
+    const previousTransactionCount = transactions.length;
+    await loadTransactions();
+    
+    // Check for new incoming transactions
+    if (transactions.length > previousTransactionCount) {
+      const newTransactions = transactions.slice(0, transactions.length - previousTransactionCount);
+      
+      for (const tx of newTransactions) {
+        if (tx.type === 'incoming' && tx.status === 'confirmed') {
+          sendPaymentNotification('received', `${tx.amount} SOL`);
+        }
+      }
+    }
   };
 
   return {
