@@ -21,6 +21,7 @@
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/wallet-adapter-solflare": "^0.6.32",
     "@solana/web3.js": "^1.98.4",
+    "@types/qrcode": "^1.5.5",
     "@types/web-push": "^3.6.4",
     "bignumber.js": "^9.3.1",
     "next": "14.2.14",

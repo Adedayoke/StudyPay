@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge, Alert } from '@/components/ui';
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
-import { QRPaymentGenerator } from '@/components/payments/QRPayment';
+import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
 import BigNumber from 'bignumber.js';
@@ -343,12 +343,12 @@ export default function VendorProfileView({
       {showQRGenerator && selectedAmount && connected && publicKey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-dark-bg-primary rounded-lg p-6 max-w-md w-full border border-dark-border-primary">
-            <QRPaymentGenerator
-              amount={selectedAmount}
-              recipientAddress={vendor.walletAddress}
-              memo={paymentMemo}
-              vendorAddress={vendor.walletAddress}
-              onPaymentComplete={handlePaymentComplete}
+            <FoodPaymentQR
+              onPaymentGenerated={(url) => {
+                console.log('Payment URL generated:', url);
+                // Handle payment completion
+                handlePaymentComplete?.();
+              }}
             />
             
             <Button

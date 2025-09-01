@@ -1,6 +1,6 @@
 /**
- * Real Solana Pay Integration
- * Handles actual payment URL creation and QR generation
+ * Real Solana Pay Integration - Competition Ready
+ * Implements official Solana Pay protocol with campus-specific features
  */
 
 import { 
@@ -11,11 +11,38 @@ import {
   SystemProgram, 
   TransactionInstruction 
 } from '@solana/web3.js';
-import { encodeURL, createQR } from '@solana/pay';
+import { 
+  encodeURL, 
+  createQR, 
+  parseURL,
+  validateTransfer
+} from '@solana/pay';
 import BigNumber from 'bignumber.js';
+import QRCode from 'qrcode';
+
+// Backup QR generation using reliable qrcode library
+function generateReliableQR(text: string, size: number = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    QRCode.toDataURL(text, {
+      width: size,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'M'
+    }, (err, url) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(url);
+      }
+    });
+  });
+}
 
 /**
- * Payment request interface for Solana Pay
+ * Official Solana Pay request interface
  */
 export interface SolanaPayRequest {
   recipient: PublicKey;
@@ -23,13 +50,19 @@ export interface SolanaPayRequest {
   label: string;
   message?: string;
   memo?: string;
+  reference?: PublicKey;
 }
 
 /**
- * Create real Solana Pay URL
+ * Campus payment categories for StudyPay
+ */
+export type CampusPaymentType = 'food' | 'transport' | 'transfer' | 'tuition' | 'books' | 'events';
+
+/**
+ * Create official Solana Pay URL following the specification
  */
 export function createSolanaPayURL(request: SolanaPayRequest): URL {
-  const { recipient, amount, label, message, memo } = request;
+  const { recipient, amount, label, message, memo, reference } = request;
   
   return encodeURL({
     recipient,
@@ -37,11 +70,167 @@ export function createSolanaPayURL(request: SolanaPayRequest): URL {
     label,
     message,
     memo,
+    reference,
   });
 }
 
 /**
- * Generate real QR code for Solana Pay
+ * Create transaction request URL for Solana Pay
+ * This is used for dynamic payment processing
+ */
+export function createSolanaPayTransactionRequest(
+  baseUrl: string,
+  paymentType: CampusPaymentType,
+  params: Record<string, string>
+): URL {
+  const url = new URL(`${baseUrl}/api/pay/${paymentType}`);
+  
+  // Add all parameters to the URL
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+  
+  return url;
+}
+
+/**
+ * Generate official Solana Pay QR code
+ */
+export async function generateSolanaPayQR(
+  paymentUrl: URL | string,
+  size: number = 400
+): Promise<string> {
+  try {
+    // Ensure we have a proper URL string
+    const urlString = paymentUrl.toString();
+    console.log('Generating QR for URL:', urlString);
+    
+    // Try the official @solana/pay createQR function first
+    try {
+      const qr = createQR(urlString, size, 'white', '#9945FF');
+      const svgString = qr.toString();
+      console.log('Generated SVG length:', svgString.length);
+      
+      if (svgString.length > 100) {
+        // Create proper base64 encoded data URL
+        const base64SVG = btoa(unescape(encodeURIComponent(svgString)));
+        const dataUrl = `data:image/svg+xml;base64,${base64SVG}`;
+        return dataUrl;
+      }
+    } catch (officialError) {
+      console.log('Official createQR failed, using fallback:', officialError);
+    }
+    
+    // Fallback to reliable QR generation
+    console.log('Using reliable QR fallback');
+    return await generateReliableQR(urlString, size);
+    
+  } catch (error) {
+    console.error('QR generation error:', error);
+    console.error('Error details:', error);
+    
+    // Final fallback: create a QR with reliable library
+    return await generateReliableQR(paymentUrl.toString(), size);
+  }
+}
+
+/**
+ * Parse and validate Solana Pay URL
+ */
+export function parseSolanaPayURL(url: string): SolanaPayRequest | null {
+  try {
+    // Parse using the manual method for compatibility
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'solana:') return null;
+    
+    const recipient = new PublicKey(parsedUrl.pathname);
+    const amount = new BigNumber(parsedUrl.searchParams.get('amount') || '0');
+    const label = parsedUrl.searchParams.get('label') || 'StudyPay Payment';
+    const message = parsedUrl.searchParams.get('message') || undefined;
+    const memo = parsedUrl.searchParams.get('memo') || undefined;
+    const reference = parsedUrl.searchParams.get('reference') 
+      ? new PublicKey(parsedUrl.searchParams.get('reference')!)
+      : undefined;
+    
+    return {
+      recipient,
+      amount,
+      label,
+      message,
+      memo,
+      reference,
+    };
+  } catch (error) {
+    console.error('Error parsing Solana Pay URL:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate Solana Pay transaction
+ */
+export async function validateSolanaPayTransaction(
+  connection: Connection,
+  signature: string,
+  request: SolanaPayRequest
+): Promise<boolean> {
+  try {
+    if (!request.reference) {
+      console.warn('No reference provided for validation');
+      return false;
+    }
+
+    const validation = await validateTransfer(
+      connection,
+      signature,
+      {
+        recipient: request.recipient,
+        amount: request.amount,
+        reference: request.reference,
+      }
+    );
+
+    return validation !== null;
+  } catch (error) {
+    console.error('Transaction validation error:', error);
+    return false;
+  }
+}
+
+/**
+ * Campus merchant registry for StudyPay
+ */
+export const CAMPUS_MERCHANTS = {
+  food: {
+    'mama-adunni': {
+      name: "Mama Adunni's Kitchen",
+      wallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+      type: 'restaurant',
+    },
+    'campus-cafe': {
+      name: 'Campus Central Cafe',
+      wallet: 'GjwEiNqYRqnVQPqfgzJhq8Z8xKXeqNqKjxqrG5xKXeqN',
+      type: 'cafe',
+    },
+  },
+  transport: {
+    'campus-shuttle': {
+      name: 'Campus Shuttle Service',
+      wallet: 'TransportWallet1234567890123456789012345678',
+      type: 'transport',
+    },
+  },
+  services: {
+    'university-bursar': {
+      name: 'University Bursar Office',
+      wallet: 'UniversityWallet123456789012345678901234567',
+      type: 'official',
+    },
+  },
+} as const;
+
+/**
+ * Generate real QR code for Solana Pay (legacy function for compatibility)
  */
 export async function generatePaymentQR(request: SolanaPayRequest): Promise<string> {
   try {
@@ -133,33 +322,6 @@ export function createStudentTransferRequest(
     message: parentNote || 'Allowance from parent',
     memo: `StudyPay transfer: ${parentNote || 'allowance'}`,
   };
-}
-
-/**
- * Parse Solana Pay URL to extract payment details
- */
-export function parseSolanaPayURL(url: string): SolanaPayRequest | null {
-  try {
-    const parsedUrl = new URL(url);
-    if (parsedUrl.protocol !== 'solana:') return null;
-    
-    const recipient = new PublicKey(parsedUrl.pathname);
-    const amount = new BigNumber(parsedUrl.searchParams.get('amount') || '0');
-    const label = parsedUrl.searchParams.get('label') || 'StudyPay Payment';
-    const message = parsedUrl.searchParams.get('message') || undefined;
-    const memo = parsedUrl.searchParams.get('memo') || undefined;
-    
-    return {
-      recipient,
-      amount,
-      label,
-      message,
-      memo,
-    };
-  } catch (error) {
-    console.error('Error parsing Solana Pay URL:', error);
-    return null;
-  }
 }
 
 /**

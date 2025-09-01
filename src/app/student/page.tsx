@@ -9,7 +9,7 @@ import React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, Button, Alert, Badge } from '@/components/ui';
 import { WalletGuard, WalletButton } from '@/components/wallet/WalletProvider';
-import { QRPaymentScanner, PaymentConfirmation } from '@/components/payments/QRPayment';
+import { SolanaPayScanner, PaymentConfirmation } from '@/components/payments/SolanaPayQR';
 import TransactionHistory from '@/components/transactions/TransactionHistory';
 import VendorDiscovery from '@/components/vendors/VendorDiscovery';
 import VendorProfileView from '@/components/vendors/VendorProfileView';
@@ -441,7 +441,7 @@ export default function StudentDashboard() {
                 ✕
               </button>
             </div>
-            <QRPaymentScanner 
+            <SolanaPayScanner 
               onPaymentDetected={handleQRScanned}
               onError={(error) => console.error('Scanner error:', error)}
             />

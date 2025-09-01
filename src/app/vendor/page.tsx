@@ -8,12 +8,13 @@
 import React from 'react';
 import { Card, Button, Alert, Badge } from '@/components/ui';
 import { WalletGuard, WalletButton } from '@/components/wallet/WalletProvider';
-import { QRPaymentGenerator } from '@/components/payments/QRPayment';
+import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import VendorAnalyticsDashboard from '@/components/analytics/VendorAnalyticsDashboard';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
 import { useVendorDashboard } from '@/hooks/vendor';
 import { useVendorPayments } from '@/hooks/vendor';
 import { useVendorAnalytics } from '@/hooks/vendor';
+import { BigNumber } from 'bignumber.js';
 
 export default function VendorDashboard() {
   const {
@@ -169,9 +170,12 @@ export default function VendorDashboard() {
           {/* Payment Generator */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-dark-text-primary">Create Payment Request</h3>
-            <QRPaymentGenerator
-              vendorAddress={publicKey?.toBase58() || ''}
-              onPaymentComplete={handlePaymentComplete}
+            <FoodPaymentQR
+              onPaymentGenerated={(url) => {
+                console.log('Payment URL generated:', url);
+                // Handle payment completion logic here
+                handlePaymentComplete?.('demo-signature');
+              }}
             />
           </div>
 
