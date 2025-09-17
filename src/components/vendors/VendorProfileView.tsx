@@ -110,13 +110,13 @@ export default function VendorProfileView({
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center space-x-4 mb-4">
+            <div className="flex gap-3 md:items-center flex-col md:flex-row md:space-x-4 mb-4">
               {onBack && (
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={onBack}
-                  className="px-3"
+                  className="px-3 w-fit"
                 >
                   ← Back
                 </Button>
@@ -133,7 +133,7 @@ export default function VendorProfileView({
               </div>
               
               <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
+                <div className="flex items-center flex-wrap space-x-3 mb-2">
                   <h1 className="text-2xl font-bold text-dark-text-primary">
                     {vendor.businessName}
                   </h1>
