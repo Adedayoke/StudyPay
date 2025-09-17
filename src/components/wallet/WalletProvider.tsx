@@ -123,7 +123,7 @@ export function WalletStatus() {
     return (
       <div className="flex items-center space-x-2">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-solana-purple-500"></div>
-        <span className="text-sm text-gray-600">Connecting...</span>
+        <span className="text-xs md:text-sm text-gray-600">Connecting...</span>
       </div>
     );
   }

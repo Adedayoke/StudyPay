@@ -61,7 +61,7 @@ export default function TransactionReceipt({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-[#1A1A1A] border border-[#333] rounded-xl max-w-md w-full p-6">
+      <div className="bg-[#1A1A1A] border border-[#333] rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">Payment Receipt</h2>
@@ -127,7 +127,7 @@ export default function TransactionReceipt({
           </div>
 
           {transaction.purpose && (
-            <div className="flex justify-between">
+            <div className="flex flex-wrap justify-between">
               <span className="text-gray-400">Purpose</span>
               <span className="text-white">{transaction.purpose}</span>
             </div>

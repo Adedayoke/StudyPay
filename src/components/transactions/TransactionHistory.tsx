@@ -90,7 +90,7 @@ export default function TransactionHistory({
     <>
       <div className="bg-[#1A1A1A] border border-[#333] rounded-xl p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex md:flex-row flex-col md:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-bold text-white">Transaction History</h2>
           <div className="flex items-center gap-3">
             {/* Filter */}
@@ -134,7 +134,7 @@ export default function TransactionHistory({
                 onClick={() => setSelectedTransaction(transaction)}
                 className="bg-[#2D2D2D] border border-[#444] rounded-lg p-4 cursor-pointer hover:bg-[#3D3D3D] transition-colors"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex md:flex-row flex-col md:items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">
                       {getStatusIcon(transaction.status)}

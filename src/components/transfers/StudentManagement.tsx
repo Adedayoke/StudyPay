@@ -100,7 +100,7 @@ export default function StudentManagement({
             onClick={() => setShowAddForm(true)}
             size="sm"
           >
-            + Add Student
+            + <span className='hidden md:inline-block'>Add Student</span>
           </Button>
         </div>
 

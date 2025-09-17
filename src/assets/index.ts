@@ -1,0 +1,1 @@
+export {default as StudyPayLogo} from './images/logo.png';

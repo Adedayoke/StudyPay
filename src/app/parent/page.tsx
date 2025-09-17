@@ -5,7 +5,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, Button, Alert, Badge, Input } from "@/components/ui";
 import {
   WalletGuard,
@@ -17,6 +17,8 @@ import { formatCurrency, solToNaira } from "@/lib/solana/utils";
 import { getMockStudentAddress } from "@/lib/solana/payment";
 import BigNumber from "bignumber.js";
 import { useParentDashboard } from "@/hooks/parent";
+import Logo from "@/components/ui/Logo";
+import { Menu, X } from "lucide-react";
 
 interface Student {
   id: string;
@@ -60,6 +62,7 @@ export default function ParentDashboard() {
     handleStudentUpdated,
     totalSentThisMonth
   } = useParentDashboard();
+  const [navMenu, setNavMenu] = useState(false)
 
   // Mock data for charts and recent transfers
   const spendingData = [
@@ -82,12 +85,10 @@ export default function ParentDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-solana-purple-500">
-                StudyPay
-              </h1>
-              <span className="ml-2 text-sm text-dark-text-secondary">
-                Parent Dashboard
-              </span>
+              <Logo />
+              {/* <span className="ml-2 text-sm text-dark-text-secondary">
+                
+              </span> */}
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="primary">Parent Account</Badge>
@@ -99,8 +100,40 @@ export default function ParentDashboard() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <WalletGuard>
           {/* Tab Navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Parent Dashboard</h1>
+            <div className="block md:hidden relative">
+              {navMenu ? (
+                <>
+                  <X onClick={() => setNavMenu(false)} />
+                </>
+              ) : (
+                <Menu onClick={() => setNavMenu(!navMenu)} />
+              )}
+              {navMenu && <ul className="absolute right-0 mt-2 w-52 bg-dark-bg-secondary border border-dark-border-primary rounded-lg shadow-lg z-10 p-2 flex flex-col gap-2">
+                {[
+                { key: "overview", label: "📊 Overview" },
+                { key: "transfer", label: "💸 Send Money" },
+                { key: "students", label: "👥 Manage Students" },
+                { key: "history", label: "📋 Transaction History" },
+              ].map((tab) => (
+                <li
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as any)}
+                  className={`py-2 px-4 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                    activeTab === tab.key
+                      ? "bg-solana-purple-500 text-white"
+                      : "text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-bg-tertiary"
+                  }`}
+                >
+                  {tab.label}
+                </li>
+              ))}
+              </ul>}
+            </div>
+          </div>
           <div className="mb-8">
-            <nav className="flex space-x-8">
+            <nav className="hidden md:flex  space-x-8">
               {[
                 { key: "overview", label: "📊 Overview" },
                 { key: "transfer", label: "💸 Send Money" },
@@ -247,7 +280,7 @@ export default function ParentDashboard() {
                     {recentTransfers.map((transfer) => (
                       <div
                         key={transfer.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-gray-50 text-black rounded-lg"
                       >
                         <div className="flex items-center space-x-3">
                           <div className="text-2xl">💰</div>
