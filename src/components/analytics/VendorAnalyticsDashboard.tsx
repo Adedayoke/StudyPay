@@ -127,7 +127,7 @@ export default function VendorAnalyticsDashboard({
   return (
     <div className="space-y-6">
       {/* Header with Timeframe Selection */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
         <h2 className="text-2xl font-bold text-dark-text-primary">
           📊 Analytics Dashboard
         </h2>
@@ -148,7 +148,7 @@ export default function VendorAnalyticsDashboard({
 
       {/* Real-time Status */}
       <Card className="p-4 bg-dark-bg-secondary border-dark-border-primary">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-dark-text-primary font-medium">Live Updates</span>

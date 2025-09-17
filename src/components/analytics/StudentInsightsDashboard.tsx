@@ -121,7 +121,7 @@ export default function StudentInsightsDashboard({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex md:flex-row flex-col gap-3 md:items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-dark-text-primary">
             🧠 Your Spending Insights
