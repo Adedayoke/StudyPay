@@ -478,15 +478,6 @@ export async function executeSOLTransfer(
     throw new Error('Wallet not connected');
   }
 
-  console.log('Starting SOL transfer:', {
-    from: senderWallet.publicKey.toString(),
-    to: paymentRequest.recipient.toString(),
-    amount: paymentRequest.amount.toString(),
-    amountInLamports: solToLamports(paymentRequest.amount).toString(),
-    connected: senderWallet.connected,
-    walletName: senderWallet.name || 'Unknown'
-  });
-
   // Check if we're on mobile - improved detection for better mobile wallet support
   const isMobile = typeof window !== 'undefined' &&
     (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -495,6 +486,49 @@ export async function executeSOLTransfer(
   // Additional mobile wallet connection checks
   if (isMobile) {
     console.log('Mobile device detected - performing connection checks...');
+
+    // Add visual debugging for mobile
+    if (typeof window !== 'undefined') {
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'mobile-payment-debug';
+      debugDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.9);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        z-index: 10000;
+        max-width: 80%;
+        text-align: center;
+        font-family: monospace;
+      `;
+      debugDiv.innerHTML = `
+        <div style="color: #9945FF; font-weight: bold;">🔄 Starting Mobile Payment...</div>
+        <div style="margin-top: 10px;">Wallet: ${senderWallet.name || 'Unknown'}</div>
+        <div>Amount: ${paymentRequest.amount.toString()} SOL</div>
+        <div style="margin-top: 10px; color: yellow;">Checking wallet connection...</div>
+      `;
+
+      document.body.appendChild(debugDiv);
+
+      // Update debug info during process
+      setTimeout(() => {
+        const debugEl = document.getElementById('mobile-payment-debug');
+        if (debugEl) {
+          debugEl.innerHTML = `
+            <div style="color: #9945FF; font-weight: bold;">📱 Mobile Wallet Status</div>
+            <div style="margin-top: 10px;">Send TX: ${!!senderWallet.sendTransaction ? '✅' : '❌'}</div>
+            <div>Sign TX: ${!!senderWallet.signTransaction ? '✅' : '❌'}</div>
+            <div>Connected: ${senderWallet.connected ? '✅' : '❌'}</div>
+            <div style="margin-top: 10px; color: yellow;">Attempting transaction...</div>
+          `;
+        }
+      }, 1000);
+    }
 
     // Check if wallet has required methods for mobile
     if (!senderWallet.sendTransaction && !senderWallet.signTransaction) {
@@ -701,6 +735,23 @@ export async function executeSOLTransfer(
     }
 
     console.log('Transaction confirmed successfully');
+
+    // Clear mobile debug overlay
+    if (isMobile && typeof window !== 'undefined') {
+      const debugEl = document.getElementById('mobile-payment-debug');
+      if (debugEl) {
+        debugEl.innerHTML = `
+          <div style="color: green; font-weight: bold;">✅ Payment Successful!</div>
+          <div style="margin-top: 10px;">Transaction: ${signature.slice(0, 8)}...</div>
+        `;
+        setTimeout(() => {
+          if (debugEl.parentNode) {
+            debugEl.parentNode.removeChild(debugEl);
+          }
+        }, 3000);
+      }
+    }
+
     return signature;
   } catch (error) {
     console.error('SOL transfer failed:', error);
@@ -716,6 +767,22 @@ export async function executeSOLTransfer(
       walletConnected: senderWallet.connected,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
     });
+
+    // Clear mobile debug overlay on error
+    if (isMobile && typeof window !== 'undefined') {
+      const debugEl = document.getElementById('mobile-payment-debug');
+      if (debugEl) {
+        debugEl.innerHTML = `
+          <div style="color: red; font-weight: bold;">❌ Payment Failed</div>
+          <div style="margin-top: 10px; font-size: 12px;">${error instanceof Error ? error.message : 'Unknown error'}</div>
+        `;
+        setTimeout(() => {
+          if (debugEl.parentNode) {
+            debugEl.parentNode.removeChild(debugEl);
+          }
+        }, 5000);
+      }
+    }
 
     // Provide mobile-specific error messages
     if (isMobile) {
@@ -850,8 +917,136 @@ export async function executePaymentFlow(
 }
 
 /**
- * Check if wallet has sufficient balance for payment
+ * Simple test to check mobile wallet connection status
+ * Call this function to see wallet status on mobile screen
  */
+export function showMobileWalletStatus(wallet: any): void {
+  if (typeof window === 'undefined') return;
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (window.innerWidth <= 768 && 'ontouchstart' in window);
+
+  if (!isMobile) {
+    console.log('Not a mobile device - wallet status:', {
+      connected: !!wallet?.connected,
+      hasSendTransaction: !!wallet?.sendTransaction,
+      hasSignTransaction: !!wallet?.signTransaction,
+      walletName: wallet?.name || 'Unknown'
+    });
+    return;
+  }
+
+  // Create status overlay for mobile
+  const statusDiv = document.createElement('div');
+  statusDiv.id = 'mobile-wallet-status';
+  statusDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 9999;
+    max-width: 250px;
+    font-family: monospace;
+  `;
+
+  const status = {
+    connected: !!wallet?.connected,
+    hasSendTransaction: !!wallet?.sendTransaction,
+    hasSignTransaction: !!wallet?.signTransaction,
+    walletName: wallet?.name || 'Unknown',
+    publicKey: wallet?.publicKey?.toString()?.slice(0, 8) + '...' || 'null'
+  };
+
+  statusDiv.innerHTML = `
+    <div style="font-weight: bold; color: #9945FF;">📱 Wallet Status</div>
+    <div style="margin-top: 8px;">Wallet: ${status.walletName}</div>
+    <div>Connected: ${status.connected ? '✅' : '❌'}</div>
+    <div>Send TX: ${status.hasSendTransaction ? '✅' : '❌'}</div>
+    <div>Sign TX: ${status.hasSignTransaction ? '✅' : '❌'}</div>
+    <div>PK: ${status.publicKey}</div>
+    <div style="margin-top: 8px; font-size: 10px; color: yellow;">
+      ${!status.connected ? '❌ Connect wallet first' :
+        !status.hasSendTransaction && !status.hasSignTransaction ? '❌ Wallet not ready' :
+        '✅ Wallet ready for payments'}
+    </div>
+  `;
+
+  document.body.appendChild(statusDiv);
+
+  // Auto-remove after 8 seconds
+  setTimeout(() => {
+    if (statusDiv.parentNode) {
+      statusDiv.parentNode.removeChild(statusDiv);
+    }
+  }, 8000);
+}
+export async function testMobileWalletConnection(wallet: any): Promise<{
+  connected: boolean;
+  hasSendTransaction: boolean;
+  hasSignTransaction: boolean;
+  walletName: string;
+  publicKey: string | null;
+  isMobile: boolean;
+  userAgent: string;
+}> {
+  const isMobile = typeof window !== 'undefined' &&
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+     (window.innerWidth <= 768 && 'ontouchstart' in window));
+
+  const result = {
+    connected: !!wallet?.connected,
+    hasSendTransaction: !!wallet?.sendTransaction,
+    hasSignTransaction: !!wallet?.signTransaction,
+    walletName: wallet?.name || 'Unknown',
+    publicKey: wallet?.publicKey?.toString() || null,
+    isMobile,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+  };
+
+  console.log('Mobile Wallet Test Results:', result);
+
+  // Show results visually for mobile debugging
+  if (isMobile && typeof window !== 'undefined') {
+    const debugDiv = document.createElement('div');
+    debugDiv.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 9999;
+      max-width: 300px;
+      font-family: monospace;
+    `;
+    debugDiv.innerHTML = `
+      <strong>Mobile Wallet Debug:</strong><br>
+      Connected: ${result.connected ? '✅' : '❌'}<br>
+      Send TX: ${result.hasSendTransaction ? '✅' : '❌'}<br>
+      Sign TX: ${result.hasSignTransaction ? '✅' : '❌'}<br>
+      Wallet: ${result.walletName}<br>
+      PK: ${result.publicKey ? result.publicKey.slice(0, 8) + '...' : 'null'}<br>
+      Mobile: ${result.isMobile ? '✅' : '❌'}
+    `;
+
+    document.body.appendChild(debugDiv);
+
+    // Remove after 10 seconds
+    setTimeout(() => {
+      if (debugDiv.parentNode) {
+        debugDiv.parentNode.removeChild(debugDiv);
+      }
+    }, 10000);
+  }
+
+  return result;
+}
 export async function checkSufficientBalance(
   connection: Connection,
   walletPubkey: PublicKey,
