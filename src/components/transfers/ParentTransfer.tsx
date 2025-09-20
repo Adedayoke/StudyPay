@@ -9,6 +9,7 @@ import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { createSolanaPayTransfer, executePaymentFlow } from '@/lib/solana/payment';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { formatSOL } from '@/lib/utils/formatting';
+import { nairaToSolSync, formatCurrency } from '@/lib/solana/utils';
 import TransactionStatus from '@/components/transactions/TransactionStatus';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 
@@ -64,13 +65,21 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
   // Choose payment method based on device
   const useSolanaPay = isMobile;
 
-  // Quick amount presets (in SOL)
-  const quickAmounts = [
-    { label: '₦10,000', sol: '0.2', usd: '$20' },
-    { label: '₦25,000', sol: '0.5', usd: '$50' },
-    { label: '₦50,000', sol: '1.0', usd: '$100' },
-    { label: '₦100,000', sol: '2.0', usd: '$200' }
-  ];
+  // Dynamic quick amounts based on current SOL price
+  const getQuickAmounts = () => {
+    const nairaAmounts = [10000, 25000, 50000, 100000];
+    return nairaAmounts.map(naira => {
+      const solAmount = nairaToSolSync(new BigNumber(naira));
+      return {
+        label: `₦${naira.toLocaleString()}`,
+        naira: naira.toString(),
+        sol: solAmount.toString(),
+        usd: `$${(naira / 500).toFixed(0)}` // Approximate USD conversion
+      };
+    });
+  };
+
+  const quickAmounts = getQuickAmounts();
 
   const handleStudentSelect = (student: Student) => {
     setSelectedStudent(student);
@@ -78,8 +87,8 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     setSuccess('');
   };
 
-  const handleAmountPreset = (solAmount: string) => {
-    setAmount(solAmount);
+  const handleAmountPreset = (nairaAmount: string) => {
+    setAmount(nairaAmount);
   };
 
   const validateTransfer = (): boolean => {
@@ -93,7 +102,9 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
       return false;
     }
 
-    if (parseFloat(amount) > parseFloat(wallet.balance.toString())) {
+    // Convert Naira amount to SOL for balance check
+    const solAmount = nairaToSolSync(new BigNumber(amount));
+    if (solAmount.gt(wallet.balance)) {
       setError('Insufficient balance for this transfer');
       return false;
     }
@@ -119,10 +130,13 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     setShowConfirmation(false);
 
     try {
-      // Create transaction record
+      // Convert Naira amount to SOL for payment processing
+      const solAmount = nairaToSolSync(new BigNumber(amount));
+
+      // Create transaction record (store SOL amount for transaction history)
       const newTransaction = addTransaction({
         description: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}`,
-        amount: new BigNumber(amount),
+        amount: solAmount, // Store SOL amount for transaction history
         category: 'transfer',
         status: 'pending',
         timestamp: new Date(),
@@ -130,7 +144,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
         // Legacy fields for compatibility
         fromAddress: wallet.publicKey.toString(),
         toAddress: selectedStudent.walletAddress,
-        purpose: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}`
+        purpose: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}: ₦${amount}`
       });
 
       setCurrentTransaction(newTransaction.id);
@@ -141,11 +155,11 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
 
         const paymentURL = createSolanaPayTransfer(
           new PublicKey(selectedStudent.walletAddress),
-          new BigNumber(amount),
+          solAmount,
           `StudyPay Transfer to ${selectedStudent.name}`,
           {
             message: purpose || 'Allowance from parent',
-            memo: `Parent transfer: ${purpose || 'allowance'}`
+            memo: `Parent transfer: ${purpose || 'allowance'}: ₦${amount}`
           }
         );
 
@@ -177,10 +191,10 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
         // Create payment request for direct transfer
         const paymentRequest = {
           recipient: new PublicKey(selectedStudent.walletAddress),
-          amount: new BigNumber(amount),
+          amount: solAmount,
           label: `StudyPay Transfer to ${selectedStudent.name}`,
           message: purpose || 'Allowance from parent',
-          memo: `Parent transfer: ${purpose || 'allowance'}`
+          memo: `Parent transfer: ${purpose || 'allowance'}: ₦${amount}`
         };
 
         // Execute the direct transfer
@@ -287,12 +301,12 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
             <div className="grid grid-cols-2 gap-2">
               {quickAmounts.map((preset) => (
                 <button
-                  key={preset.sol}
-                  onClick={() => handleAmountPreset(preset.sol)}
+                  key={preset.naira}
+                  onClick={() => handleAmountPreset(preset.naira)}
                   className="p-3 border border-[#333] rounded-lg hover:border-[#9945FF] transition-colors text-left"
                 >
                   <div className="text-white font-medium">{preset.label}</div>
-                  <div className="text-sm text-gray-400">{preset.sol} SOL ({preset.usd})</div>
+                  <div className="text-sm text-gray-400">≈ {formatCurrency(new BigNumber(preset.sol), 'SOL')} ({preset.usd})</div>
                 </button>
               ))}
             </div>
@@ -301,19 +315,19 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
           {/* Custom Amount */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Amount (SOL)
+              Amount (₦)
             </label>
             <Input
               type="number"
-              step="0.001"
+              step="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter SOL amount"
+              placeholder="Enter Naira amount"
               className="w-full"
             />
-            {amount && (
+            {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
               <div className="text-sm text-gray-400 mt-1">
-                ≈ ₦{(parseFloat(amount) * 50000).toLocaleString()} (approx)
+                ≈ {formatCurrency(nairaToSolSync(new BigNumber(amount)), 'SOL')}
               </div>
             )}
           </div>
@@ -370,7 +384,11 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Amount:</span>
-                <span className="text-white font-mono">₦{solToNaira(new BigNumber(amount)).toFixed(0)}</span>
+                <span className="text-white font-mono">₦{parseFloat(amount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">SOL Equivalent:</span>
+                <span className="text-gray-300 font-mono">{formatCurrency(nairaToSolSync(new BigNumber(amount)), 'SOL')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Purpose:</span>
