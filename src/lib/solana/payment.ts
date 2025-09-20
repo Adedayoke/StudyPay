@@ -499,41 +499,114 @@ async function testMobileWalletConnectivity(wallet: any, connection: Connection)
     diagnostics.canSign = typeof wallet.signTransaction === 'function';
     diagnostics.canSend = typeof wallet.sendTransaction === 'function';
 
-    // Identify wallet type
+    // Identify wallet type with enhanced detection
     if (wallet.name) {
-      diagnostics.walletType = wallet.name.toLowerCase();
-      if (diagnostics.walletType.includes('phantom')) {
+      const walletName = wallet.name.toLowerCase();
+      diagnostics.walletType = wallet.name; // Keep original name
+
+      // Enhanced wallet type detection
+      if (walletName.includes('phantom')) {
         diagnostics.walletType = 'Phantom Mobile';
-      } else if (diagnostics.walletType.includes('solflare')) {
+        diagnostics.recommendations.push('Phantom detected - ensure you\'re signed into the correct account');
+      } else if (walletName.includes('solflare') || walletName.includes('solflare')) {
         diagnostics.walletType = 'Solflare Mobile';
-      } else if (diagnostics.walletType.includes('trust')) {
+        diagnostics.recommendations.push('Solflare detected - try switching to Phantom for better mobile compatibility');
+      } else if (walletName.includes('trust')) {
         diagnostics.walletType = 'Trust Wallet';
-      } else if (diagnostics.walletType.includes('metamask')) {
+        diagnostics.recommendations.push('Trust Wallet detected - ensure Solana network is enabled');
+      } else if (walletName.includes('metamask') || walletName.includes('meta')) {
         diagnostics.walletType = 'MetaMask Mobile';
+        diagnostics.recommendations.push('MetaMask detected - ensure you have the Solana snap installed');
+      } else if (walletName.includes('coinbase') || walletName.includes('cb')) {
+        diagnostics.walletType = 'Coinbase Wallet';
+        diagnostics.recommendations.push('Coinbase Wallet detected - ensure Solana is enabled in settings');
+      } else if (walletName.includes('walletconnect') || walletName.includes('wc')) {
+        diagnostics.walletType = 'WalletConnect';
+        diagnostics.recommendations.push('WalletConnect detected - ensure the connected wallet supports Solana');
+      } else if (walletName.includes('mobile') || walletName.includes('android') || walletName.includes('ios')) {
+        diagnostics.walletType = 'Generic Mobile Wallet';
+        diagnostics.recommendations.push('Generic mobile wallet detected - try using Phantom or Solflare instead');
+      } else {
+        diagnostics.walletType = `Unknown (${wallet.name})`;
+        diagnostics.recommendations.push('Unknown wallet type - try using Phantom Mobile for best compatibility');
       }
+    } else {
+      // No wallet name available - try to infer from user agent
+      diagnostics.walletType = 'Unknown (no name)';
+      diagnostics.recommendations.push('Wallet name not detected - try refreshing the page');
+      diagnostics.recommendations.push('Ensure you\'re using a Solana-compatible mobile wallet');
+    }
+
+    // Additional wallet identification attempts
+    if (diagnostics.walletType.includes('Unknown')) {
+      // Try to identify wallet from user agent or other properties
+      if (typeof navigator !== 'undefined') {
+        const ua = navigator.userAgent.toLowerCase();
+        if (ua.includes('phantom')) {
+          diagnostics.walletType = 'Phantom Mobile (detected from UA)';
+          diagnostics.recommendations.unshift('Phantom Mobile detected - ensure you\'re signed in');
+        } else if (ua.includes('solflare')) {
+          diagnostics.walletType = 'Solflare Mobile (detected from UA)';
+          diagnostics.recommendations.unshift('Solflare detected - try switching to Phantom');
+        }
+      }
+
+      // Check wallet adapter properties
+      if (wallet.adapter) {
+        diagnostics.walletType = `Adapter: ${wallet.adapter.name || 'Unknown'}`;
+      }
+
+      // Check for mobile-specific properties
+      if (wallet.isMobile || wallet.mobile) {
+        diagnostics.walletType += ' (Mobile)';
+      }
+    }
+
+    // Add wallet-specific troubleshooting for unknown types
+    if (diagnostics.walletType.includes('Unknown')) {
+      diagnostics.recommendations.splice(1, 0, '🔍 WALLET IDENTIFICATION HELP:');
+      diagnostics.recommendations.splice(2, 0, '• Open your wallet app and check the name in settings');
+      diagnostics.recommendations.splice(3, 0, '• Look for "Phantom", "Solflare", "Trust", or "MetaMask" in the name');
+      diagnostics.recommendations.splice(4, 0, '• If none of these, your wallet may not support Solana fully');
     }
 
     // Generate recommendations based on diagnostics
     if (!diagnostics.connected) {
       diagnostics.recommendations.push('Reconnect your mobile wallet');
+      diagnostics.recommendations.push('Ensure your wallet app is open and unlocked');
     }
 
     if (!diagnostics.canSign && !diagnostics.canSend) {
       diagnostics.recommendations.push('Your wallet may not support Solana transactions');
+      diagnostics.recommendations.push('Try switching to Phantom Mobile or Solflare');
     }
 
     if (diagnostics.networkStatus === 'error') {
       diagnostics.recommendations.push('Check your internet connection');
+      diagnostics.recommendations.push('Try switching to mobile data if WiFi is unstable');
     }
 
-    if (diagnostics.walletType === 'Phantom Mobile' && !diagnostics.canSign) {
-      diagnostics.recommendations.push('Try alternative signing method');
-      diagnostics.recommendations.push('Ensure Phantom app is updated');
+    // Specific recommendations for unknown wallets
+    if (diagnostics.walletType.includes('Unknown')) {
+      diagnostics.recommendations.unshift('🔍 WALLET IDENTIFICATION NEEDED');
+      diagnostics.recommendations.push('What wallet app are you using? (Phantom, Solflare, Trust, etc.)');
+      diagnostics.recommendations.push('Try disconnecting and reconnecting your wallet');
+      diagnostics.recommendations.push('For best results, use Phantom Mobile app');
     }
 
+    // Add general mobile troubleshooting
     if (diagnostics.recommendations.length === 0) {
       diagnostics.recommendations.push('Try refreshing the page and reconnecting');
-      diagnostics.recommendations.push('Ensure your wallet app is updated');
+      diagnostics.recommendations.push('Ensure your wallet app is updated to the latest version');
+      diagnostics.recommendations.push('Make sure you have sufficient SOL for transaction fees');
+    }
+
+    // Add urgent action items for signature failures
+    if (diagnostics.connected && (diagnostics.canSign || diagnostics.canSend)) {
+      diagnostics.recommendations.unshift('⚡ QUICK FIXES TO TRY:');
+      diagnostics.recommendations.push('1. Close and reopen your wallet app');
+      diagnostics.recommendations.push('2. Refresh this page completely');
+      diagnostics.recommendations.push('3. Try the payment again immediately');
     }
 
   } catch (error) {
@@ -1044,24 +1117,31 @@ export async function executeSOLTransfer(
             if (typeof window !== 'undefined') {
               const debugEl = document.getElementById('mobile-payment-debug');
               if (debugEl) {
+                const recommendationsHtml = walletDiagnostics.recommendations.map(rec => `<div>• ${rec}</div>`).join('');
+
                 debugEl.innerHTML = `
-                  <div style="color: orange; font-weight: bold;">🔍 Running Diagnostics...</div>
-                  <div style="margin-top: 10px; font-size: 12px;">
+                  <div style="color: orange; font-weight: bold; margin-bottom: 15px;">🔍 Wallet Diagnostics Complete</div>
+                  <div style="margin-bottom: 15px; font-size: 12px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;">
+                    <div style="margin-bottom: 8px;"><strong>Status:</strong></div>
                     <div>Wallet Connected: ${walletDiagnostics.connected ? '✅' : '❌'}</div>
                     <div>Can Sign: ${walletDiagnostics.canSign ? '✅' : '❌'}</div>
                     <div>Can Send: ${walletDiagnostics.canSend ? '✅' : '❌'}</div>
                     <div>Network: ${walletDiagnostics.networkStatus}</div>
                     <div>Wallet Type: ${walletDiagnostics.walletType}</div>
                   </div>
-                  <div style="margin-top: 15px; color: yellow; font-size: 12px;">
-                    ${walletDiagnostics.recommendations.join('<br>')}
+                  <div style="color: yellow; font-size: 12px; line-height: 1.4;">
+                    <div style="margin-bottom: 8px;"><strong>Recommended Actions:</strong></div>
+                    ${recommendationsHtml}
+                  </div>
+                  <div style="margin-top: 15px; color: cyan; font-size: 11px;">
+                    💡 <strong>Pro Tip:</strong> If using an unknown wallet, try Phantom Mobile for best compatibility
                   </div>
                 `;
                 setTimeout(() => {
                   if (debugEl.parentNode) {
                     debugEl.parentNode.removeChild(debugEl);
                   }
-                }, 8000);
+                }, 12000); // Show longer for troubleshooting
               }
             }
 
