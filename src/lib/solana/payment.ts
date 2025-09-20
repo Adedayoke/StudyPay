@@ -507,27 +507,13 @@ export async function executeSOLTransfer(
         font-family: monospace;
       `;
       debugDiv.innerHTML = `
-        <div style="color: #9945FF; font-weight: bold;">🔄 Starting Mobile Payment...</div>
+        <div style="color: #9945FF; font-weight: bold;">🔄 Initializing Mobile Wallet...</div>
         <div style="margin-top: 10px;">Wallet: ${senderWallet.name || 'Unknown'}</div>
         <div>Amount: ${paymentRequest.amount.toString()} SOL</div>
-        <div style="margin-top: 10px; color: yellow;">Checking wallet connection...</div>
+        <div style="margin-top: 10px; color: yellow;">Preparing wallet for transaction...</div>
       `;
 
       document.body.appendChild(debugDiv);
-
-      // Update debug info during process
-      setTimeout(() => {
-        const debugEl = document.getElementById('mobile-payment-debug');
-        if (debugEl) {
-          debugEl.innerHTML = `
-            <div style="color: #9945FF; font-weight: bold;">📱 Mobile Wallet Status</div>
-            <div style="margin-top: 10px;">Send TX: ${!!senderWallet.sendTransaction ? '✅' : '❌'}</div>
-            <div>Sign TX: ${!!senderWallet.signTransaction ? '✅' : '❌'}</div>
-            <div>Connected: ${senderWallet.connected ? '✅' : '❌'}</div>
-            <div style="margin-top: 10px; color: yellow;">Attempting transaction...</div>
-          `;
-        }
-      }, 1000);
     }
 
     // Check if wallet has required methods for mobile
@@ -540,7 +526,25 @@ export async function executeSOLTransfer(
       throw new Error('Mobile wallet is not connected. Please connect your wallet app and try again.');
     }
 
-    console.log('Mobile wallet connection checks passed');
+    // Give mobile wallet time to initialize
+    console.log('Waiting for mobile wallet to initialize...');
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds for mobile wallet
+
+    // Update debug overlay
+    if (typeof window !== 'undefined') {
+      const debugEl = document.getElementById('mobile-payment-debug');
+      if (debugEl) {
+        debugEl.innerHTML = `
+          <div style="color: #9945FF; font-weight: bold;">📱 Mobile Wallet Ready</div>
+          <div style="margin-top: 10px;">Send TX: ${!!senderWallet.sendTransaction ? '✅' : '❌'}</div>
+          <div>Sign TX: ${!!senderWallet.signTransaction ? '✅' : '❌'}</div>
+          <div>Connected: ${senderWallet.connected ? '✅' : '❌'}</div>
+          <div style="margin-top: 10px; color: green;">Starting transaction...</div>
+        `;
+      }
+    }
+
+    console.log('Mobile wallet initialization complete');
   }
 
   // Improved mobile wallet adapter detection
