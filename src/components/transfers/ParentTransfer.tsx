@@ -6,7 +6,7 @@ import { PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import { Card, Button, Input, Alert } from '@/components/ui';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
-import { createSolanaPayTransfer, createDirectPaymentURL } from '@/lib/solana/payment';
+import { createSolanaPayTransfer, executePaymentFlow } from '@/lib/solana/payment';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { formatSOL } from '@/lib/utils/formatting';
 import TransactionStatus from '@/components/transactions/TransactionStatus';
@@ -54,6 +54,15 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     'Academic Materials',
     'Healthcare Expenses'
   ];
+
+  // Device detection for optimal payment method
+  const isMobile = typeof window !== 'undefined' && (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && 'ontouchstart' in window)
+  );
+
+  // Choose payment method based on device
+  const useSolanaPay = isMobile;
 
   // Quick amount presets (in SOL)
   const quickAmounts = [
@@ -110,17 +119,6 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     setShowConfirmation(false);
 
     try {
-      // Create Solana Pay Transfer Request URL
-      const paymentURL = createSolanaPayTransfer(
-        new PublicKey(selectedStudent.walletAddress),
-        new BigNumber(amount),
-        `StudyPay Transfer to ${selectedStudent.name}`,
-        {
-          message: purpose || 'Allowance from parent',
-          memo: `Parent transfer: ${purpose || 'allowance'}`
-        }
-      );
-
       // Create transaction record
       const newTransaction = addTransaction({
         description: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}`,
@@ -137,26 +135,83 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
 
       setCurrentTransaction(newTransaction.id);
 
-      // Open Solana Pay URL in wallet
-      console.log('Opening Solana Pay URL:', paymentURL.toString());
-      window.open(paymentURL.toString(), '_blank');
+      if (useSolanaPay) {
+        // Mobile: Use Solana Pay Transfer Request
+        console.log('📱 Using Solana Pay method for mobile device');
 
-      // For Solana Pay, we can't monitor the transaction directly
-      // We'll mark it as completed optimistically and let the user know
-      setTimeout(() => {
-        updateTransaction(newTransaction.id, {
-          status: 'confirmed',
-          signature: 'solana-pay-transfer' // Placeholder signature for Solana Pay
-        });
+        const paymentURL = createSolanaPayTransfer(
+          new PublicKey(selectedStudent.walletAddress),
+          new BigNumber(amount),
+          `StudyPay Transfer to ${selectedStudent.name}`,
+          {
+            message: purpose || 'Allowance from parent',
+            memo: `Parent transfer: ${purpose || 'allowance'}`
+          }
+        );
 
-        setSuccess(`Payment request sent to ${selectedStudent.name}! Check your wallet to complete the transfer.`);
-        setAmount('');
-        setPurpose('');
-        setSelectedStudent(null);
-        onTransferComplete();
-        setIsTransferring(false);
-        setCurrentTransaction('');
-      }, 2000); // Give user time to see the success message
+        // Open Solana Pay URL in wallet
+        console.log('Opening Solana Pay URL:', paymentURL.toString());
+        window.open(paymentURL.toString(), '_blank');
+
+        // For Solana Pay, we can't monitor the transaction directly
+        // We'll mark it as completed optimistically and let the user know
+        setTimeout(() => {
+          updateTransaction(newTransaction.id, {
+            status: 'confirmed',
+            signature: 'solana-pay-transfer' // Placeholder signature for Solana Pay
+          });
+
+          setSuccess(`Payment request sent to ${selectedStudent.name}! Check your wallet to complete the transfer.`);
+          setAmount('');
+          setPurpose('');
+          setSelectedStudent(null);
+          onTransferComplete();
+          setIsTransferring(false);
+          setCurrentTransaction('');
+        }, 2000); // Give user time to see the success message
+
+      } else {
+        // Desktop: Use direct SOL transfer
+        console.log('💻 Using direct SOL transfer method for desktop');
+
+        // Create payment request for direct transfer
+        const paymentRequest = {
+          recipient: new PublicKey(selectedStudent.walletAddress),
+          amount: new BigNumber(amount),
+          label: `StudyPay Transfer to ${selectedStudent.name}`,
+          message: purpose || 'Allowance from parent',
+          memo: `Parent transfer: ${purpose || 'allowance'}`
+        };
+
+        // Execute the direct transfer
+        const result = await executePaymentFlow(
+          connection,
+          wallet,
+          paymentRequest,
+          (status) => {
+            updateTransaction(newTransaction.id, {
+              status: status === 'confirmed' ? 'confirmed' : 'pending'
+            });
+          }
+        );
+
+        if (result.status === 'confirmed') {
+          // Update transaction with signature
+          updateTransaction(newTransaction.id, {
+            status: 'confirmed',
+            signature: result.signature
+          });
+
+          setSuccess(`Successfully sent ₦${solToNaira(new BigNumber(amount)).toFixed(0)} to ${selectedStudent.name}!`);
+          setAmount('');
+          setPurpose('');
+          setSelectedStudent(null);
+          onTransferComplete();
+        } else {
+          updateTransaction(newTransaction.id, { status: 'failed' });
+          setError(result.error || 'Transfer failed');
+        }
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Transfer failed';
@@ -164,6 +219,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
         updateTransaction(currentTransaction, { status: 'failed' });
       }
       setError(errorMessage);
+    } finally {
       setIsTransferring(false);
       setCurrentTransaction('');
     }
@@ -210,9 +266,18 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
       {/* Transfer Form */}
       {selectedStudent && (
         <Card>
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Transfer to {selectedStudent.name}
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">
+              Transfer to {selectedStudent.name}
+            </h3>
+            <div className={`text-xs px-2 py-1 rounded-full ${
+              useSolanaPay
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+            }`}>
+              {useSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
+            </div>
+          </div>
           
           {/* Quick Amount Selection */}
           <div className="mb-4">
@@ -314,6 +379,18 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
               <div className="flex justify-between">
                 <span className="text-gray-400">Network Fee:</span>
                 <span className="text-white">~0.0005 SOL</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Payment Method:</span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    useSolanaPay
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  }`}>
+                    {useSolanaPay ? '📱 Solana Pay' : '💻 Direct Transfer'}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex gap-3">
