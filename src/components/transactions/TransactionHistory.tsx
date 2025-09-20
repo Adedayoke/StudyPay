@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types/payment';
 import { formatSOL } from '@/lib/utils/formatting';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 import TransactionReceipt from './TransactionReceipt';
 
 interface TransactionHistoryProps {
@@ -18,17 +19,17 @@ export default function TransactionHistory({
   const [filter, setFilter] = useState<'all' | 'sent' | 'received' | 'pending'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
       case 'confirmed':
       case 'finalized':
-        return '✅';
+        return <StudyPayIcon name="success" size={size} />;
       case 'failed':
-        return '❌';
+        return <StudyPayIcon name="error" size={size} />;
       case 'pending':
-        return '⏳';
+        return <StudyPayIcon name="clock" size={size} />;
       default:
-        return '📝';
+        return <StudyPayIcon name="document" size={size} />;
     }
   };
 
@@ -120,7 +121,9 @@ export default function TransactionHistory({
         {/* Transaction List */}
         {sortedTransactions.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">📊</div>
+            <div className="text-4xl mb-4 flex justify-center">
+              <StudyPayIcon name="analytics" size={48} />
+            </div>
             <h3 className="text-lg font-semibold text-white mb-2">No Transactions Yet</h3>
             <p className="text-gray-400">
               Your payment history will appear here once you start making transactions.

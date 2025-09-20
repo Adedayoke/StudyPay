@@ -7,23 +7,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge, Alert } from '@/components/ui';
-import { VendorProfile } from '@/lib/vendors/vendorRegistry';
+import { VendorProfile, VendorMenuItem } from '@/lib/vendors/vendorRegistry';
 import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { StudyPayIcon, CategoryIcon, StatusIcon } from '@/lib/utils/iconMap';
+import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
 
 interface VendorProfileViewProps {
   vendor: VendorProfile;
   onBack?: () => void;
   onPaymentRequest?: (amount: BigNumber, memo: string) => void;
-}
-
-interface QuickOrderItem {
-  name: string;
-  price: BigNumber;
-  description: string;
-  category: string;
 }
 
 export default function VendorProfileView({ 
@@ -36,34 +31,19 @@ export default function VendorProfileView({
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMemo, setPaymentMemo] = useState('');
   const [showQRGenerator, setShowQRGenerator] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
 
-  // Mock quick order items (would come from vendor menu in real implementation)
-  const quickOrderItems: QuickOrderItem[] = [
-    {
-      name: 'Jollof Rice Special',
-      price: new BigNumber(0.025),
-      description: 'Rice with chicken and plantain',
-      category: 'Main Dish'
-    },
-    {
-      name: 'Chicken Suya',
-      price: new BigNumber(0.02),
-      description: 'Grilled spiced chicken',
-      category: 'Snacks'
-    },
-    {
-      name: 'Cold Drink',
-      price: new BigNumber(0.008),
-      description: 'Soft drinks and water',
-      category: 'Beverages'
-    },
-    {
-      name: 'Course Textbook',
-      price: new BigNumber(0.15),
-      description: 'New and used textbooks',
-      category: 'Academic'
-    }
-  ];
+  // Update cart count when component mounts
+  useEffect(() => {
+    const updateCartCount = () => {
+      setCartItemCount(cartService.getItemCount());
+    };
+
+    updateCartCount();
+    // In a real app, you'd subscribe to cart changes
+    const interval = setInterval(updateCartCount, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isOpen = () => {
     const now = new Date();
@@ -75,9 +55,17 @@ export default function VendorProfileView({
            currentTime <= vendor.operatingHours.close;
   };
 
-  const handleQuickOrder = (item: QuickOrderItem) => {
-    setSelectedAmount(item.price);
-    setPaymentMemo(`${vendor.businessName}: ${item.name}`);
+  const handleAddToCart = (product: VendorMenuItem) => {
+    cartService.addItem(product, vendor.id, vendor.businessName, 1);
+    setCartItemCount(cartService.getItemCount());
+    // Could show a toast notification here
+  };
+
+  const handleQuickOrder = (product: VendorMenuItem) => {
+    // For quick orders, add to cart and immediately proceed to payment
+    cartService.addItem(product, vendor.id, vendor.businessName, 1);
+    setSelectedAmount(product.price);
+    setPaymentMemo(`${vendor.businessName}: ${product.name}`);
     setShowQRGenerator(true);
   };
 
@@ -123,13 +111,10 @@ export default function VendorProfileView({
               )}
               
               <div className="text-4xl">
-                {vendor.category === 'food' && '🍽️'}
-                {vendor.category === 'books' && '📚'}
-                {vendor.category === 'electronics' && '💻'}
-                {vendor.category === 'services' && '🔧'}
-                {vendor.category === 'transport' && '🚌'}
-                {vendor.category === 'printing' && '🖨️'}
-                {vendor.category === 'other' && '🏪'}
+                <CategoryIcon 
+                  category={vendor.category as any} 
+                  size={48} 
+                />
               </div>
               
               <div className="flex-1">
@@ -139,8 +124,9 @@ export default function VendorProfileView({
                   </h1>
                   
                   {vendor.verification.isVerified && (
-                    <Badge variant="success">
-                      ✅ Verified
+                    <Badge variant="success" className="flex items-center gap-1">
+                      <StudyPayIcon name="verified" size={14} />
+                      Verified
                     </Badge>
                   )}
                   
@@ -155,18 +141,18 @@ export default function VendorProfileView({
                 
                 <div className="flex items-center space-x-4 text-sm text-dark-text-secondary">
                   <div className="flex items-center space-x-1">
-                    <span>📍</span>
+                    <StudyPayIcon name="location" size={14} />
                     <span>{vendor.location.building}</span>
                     {vendor.location.floor && <span>• {vendor.location.floor}</span>}
                   </div>
                   
                   <div className="flex items-center space-x-1">
-                    <span>⭐</span>
+                    <StudyPayIcon name="star" size={14} />
                     <span>{vendor.rating.average.toFixed(1)} ({vendor.rating.totalReviews} reviews)</span>
                   </div>
                   
                   <div className="flex items-center space-x-1">
-                    <span>🕒</span>
+                    <StudyPayIcon name="clock" className="inline h-4 w-4" />
                     <span>{vendor.operatingHours.open} - {vendor.operatingHours.close}</span>
                   </div>
                 </div>
@@ -176,49 +162,70 @@ export default function VendorProfileView({
         </div>
       </Card>
 
-      {/* Quick Orders */}
-      {vendor.category === 'food' && (
+      {/* Menu Items */}
+      {vendor.category === 'food' && vendor.products && vendor.products.length > 0 && (
         <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-          <h2 className="text-lg font-semibold text-dark-text-primary mb-4">
-            🍽️ Popular Items
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-dark-text-primary flex items-center gap-2">
+              <StudyPayIcon name="food" size={20} />
+              Menu Items
+            </h2>
+            {cartItemCount > 0 && (
+              <Badge variant="primary" className="flex items-center gap-1">
+                <StudyPayIcon name="cart" size={14} />
+                {cartItemCount} in cart
+              </Badge>
+            )}
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {quickOrderItems
-              .filter(item => vendor.category === 'food' ? 
-                ['Main Dish', 'Snacks', 'Beverages'].includes(item.category) :
-                item.category === 'Academic'
-              )
-              .map((item, index) => (
+            {vendor.products
+              .filter(product => product.isAvailable)
+              .map((product) => (
                 <div
-                  key={index}
+                  key={product.id}
                   className="p-4 bg-dark-bg-tertiary rounded-lg border border-dark-border-secondary hover:border-solana-purple-500 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <h3 className="font-medium text-dark-text-primary">{item.name}</h3>
-                      <p className="text-sm text-dark-text-secondary">{item.description}</p>
+                      <h3 className="font-medium text-dark-text-primary">{product.name}</h3>
+                      <p className="text-sm text-dark-text-secondary">{product.description}</p>
+                      {product.estimatedPrepTime && (
+                        <p className="text-xs text-dark-text-muted mt-1">
+                          Ready in ~{product.estimatedPrepTime} min
+                        </p>
+                      )}
                     </div>
                     
                     <div className="text-right ml-4">
                       <div className="font-semibold text-dark-text-primary">
-                        {formatCurrency(item.price, 'SOL')}
+                        {formatCurrency(product.price, 'SOL')}
                       </div>
                       <div className="text-xs text-dark-text-secondary">
-                        ≈ ₦{solToNaira(item.price).toFixed(0)}
+                        ≈ ₦{solToNaira(product.price).toFixed(0)}
                       </div>
                     </div>
                   </div>
                   
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleQuickOrder(item)}
-                    disabled={!connected || !isOpen()}
-                    className="w-full"
-                  >
-                    {!connected ? 'Connect Wallet' : !isOpen() ? 'Closed' : 'Order Now'}
-                  </Button>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleAddToCart(product)}
+                      className="flex-1"
+                    >
+                      Add to Cart
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleQuickOrder(product)}
+                      disabled={!connected || !isOpen()}
+                      className="flex-1"
+                    >
+                      {!connected ? 'Connect Wallet' : !isOpen() ? 'Closed' : 'Order Now'}
+                    </Button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -228,7 +235,7 @@ export default function VendorProfileView({
       {/* Custom Payment */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <h2 className="text-lg font-semibold text-dark-text-primary mb-4">
-          💰 Custom Payment
+          <StudyPayIcon name="coins" className="inline h-5 w-5 mr-1" /> Custom Payment
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,14 +287,18 @@ export default function VendorProfileView({
 
       {/* Vendor Info */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h2 className="text-lg font-semibold text-dark-text-primary mb-4">
-          ℹ️ Vendor Information
+        <h2 className="text-lg font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="info" size={20} />
+          Vendor Information
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <h3 className="font-medium text-dark-text-primary mb-2">📍 Location</h3>
+              <h3 className="font-medium text-dark-text-primary mb-2 flex items-center gap-2">
+                <StudyPayIcon name="location" size={16} />
+                Location
+              </h3>
               <p className="text-sm text-dark-text-secondary">
                 {vendor.location.building}
                 {vendor.location.floor && <><br/>{vendor.location.floor}</>}
@@ -298,7 +309,9 @@ export default function VendorProfileView({
             </div>
             
             <div>
-              <h3 className="font-medium text-dark-text-primary mb-2">🕒 Operating Hours</h3>
+              <h3 className="font-medium text-dark-text-primary mb-2 flex items-center gap-2">
+                <StudyPayIcon name="clock" className="inline h-4 w-4" /> Operating Hours
+              </h3>
               <p className="text-sm text-dark-text-secondary">
                 {vendor.operatingHours.open} - {vendor.operatingHours.close}
                 <br/>
@@ -313,7 +326,10 @@ export default function VendorProfileView({
           
           <div className="space-y-4">
             <div>
-              <h3 className="font-medium text-dark-text-primary mb-2">📊 Stats</h3>
+              <h3 className="font-medium text-dark-text-primary mb-2 flex items-center gap-2">
+                <StudyPayIcon name="stats" size={16} />
+                Stats
+              </h3>
               <div className="text-sm text-dark-text-secondary space-y-1">
                 <div>Total Sales: {formatCurrency(vendor.stats.totalSales, 'SOL')}</div>
                 <div>Total Orders: {vendor.stats.totalTransactions}</div>
@@ -324,12 +340,17 @@ export default function VendorProfileView({
             
             {vendor.contactInfo.phone && (
               <div>
-                <h3 className="font-medium text-dark-text-primary mb-2">📞 Contact</h3>
+                <h3 className="font-medium text-dark-text-primary mb-2 flex items-center gap-2">
+                  <StudyPayIcon name="phone" className="inline h-4 w-4" /> Contact
+                </h3>
                 <div className="text-sm text-dark-text-secondary">
                   {vendor.contactInfo.phone}
                   {vendor.contactInfo.whatsapp && (
                     <div className="mt-1">
-                      <span className="text-green-500">📱 WhatsApp:</span> {vendor.contactInfo.whatsapp}
+                      <span className="text-green-500 flex items-center gap-1">
+                        <StudyPayIcon name="phone" size={14} />
+                        WhatsApp:
+                      </span> {vendor.contactInfo.whatsapp}
                     </div>
                   )}
                 </div>

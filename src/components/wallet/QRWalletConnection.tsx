@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { Card, Button, Alert } from '@/components/ui';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 
 interface QRWalletConnectionProps {
   onWalletConnected?: (publicKey: PublicKey) => void;
@@ -68,7 +69,10 @@ export function QRWalletConnection({ onWalletConnected }: QRWalletConnectionProp
       {/* QR Code Method */}
       <Card className="p-4">
         <div className="text-center">
-          <h4 className="font-medium mb-2">📱 QR Code Connection</h4>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <StudyPayIcon name="qr" size={20} className="text-blue-500" />
+            <h4 className="font-medium">QR Code Connection</h4>
+          </div>
           <p className="text-sm text-gray-600 mb-3">
             Scan with your mobile wallet app to connect securely
           </p>
@@ -105,7 +109,9 @@ export function QRWalletConnection({ onWalletConnected }: QRWalletConnectionProp
                   <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300">
                     {/* In real implementation, use a QR code library */}
                     <div className="text-center">
-                      <div className="text-6xl mb-2">📱</div>
+                      <div className="flex justify-center mb-2">
+                        <StudyPayIcon name="mobile" size={64} className="text-blue-500" />
+                      </div>
                       <p className="text-xs font-mono break-all">{qrCodeData}</p>
                     </div>
                   </div>
@@ -128,7 +134,9 @@ export function QRWalletConnection({ onWalletConnected }: QRWalletConnectionProp
               {connectionStep === 'connected' && (
                 <Alert className="bg-green-50 border-green-200">
                   <div className="text-center">
-                    <div className="text-2xl mb-2">✅</div>
+                    <div className="flex justify-center mb-2">
+                      <StudyPayIcon name="success" size={32} className="text-green-500" />
+                    </div>
                     <p className="text-green-800 font-medium">Wallet Connected Successfully!</p>
                   </div>
                 </Alert>
@@ -146,7 +154,10 @@ export function QRWalletConnection({ onWalletConnected }: QRWalletConnectionProp
       {/* Wallet App Download Links */}
       <Card className="p-4 bg-blue-50 border-blue-200">
         <div className="text-center">
-          <h4 className="font-medium mb-2 text-blue-800">📲 Don't have a wallet?</h4>
+          <h4 className="font-medium mb-2 text-blue-800">
+            <StudyPayIcon name="mobile" className="inline mr-2" size={16} />
+            Don't have a wallet?
+          </h4>
           <p className="text-sm text-blue-600 mb-3">
             Download a Solana wallet app to get started:
           </p>
@@ -155,17 +166,19 @@ export function QRWalletConnection({ onWalletConnected }: QRWalletConnectionProp
               href="https://phantom.app/download"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition-colors"
+              className="bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-1"
             >
-              📱 Phantom Wallet
+              <StudyPayIcon name="wallet" size={14} />
+              Phantom Wallet
             </a>
             <a
               href="https://solflare.com/download"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-orange-600 text-white py-2 px-3 rounded text-sm hover:bg-orange-700 transition-colors"
+              className="bg-orange-600 text-white py-2 px-3 rounded text-sm hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
             >
-              🔥 Solflare Wallet
+              <StudyPayIcon name="flame" size={14} />
+              Solflare Wallet
             </a>
           </div>
         </div>

@@ -1,8 +1,7 @@
 /**
  * Campus Analytics Dashboard
  * University-wide payment analytics and insights
- */
-
+ */  
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -11,6 +10,7 @@ import { analyticsEngine, CampusAnalytics } from '@/lib/analytics/analyticsEngin
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 
 interface CampusAnalyticsDashboardProps {
@@ -82,16 +82,16 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
   };
 
   const getHealthIcon = (percentage: number) => {
-    if (percentage >= 90) return '🟢';
-    if (percentage >= 70) return '🟡';
-    return '🔴';
+  if (percentage >= 90) return <StudyPayIcon name="success" className="h-4 w-4 text-green-500 inline" />;
+  if (percentage >= 70) return <StudyPayIcon name="warning" className="h-4 w-4 text-yellow-500 inline" />;
+  return <StudyPayIcon name="error" className="h-4 w-4 text-red-500 inline" />;
   };
 
   const getTrendEmoji = (growth: number) => {
-    if (growth > 10) return '🚀';
-    if (growth > 0) return '📈';
-    if (growth < -10) return '📉';
-    return '➡️';
+  if (growth > 10) return <StudyPayIcon name="trending" className="h-4 w-4 text-green-500 inline" />;
+  if (growth > 0) return <StudyPayIcon name="trending" className="h-4 w-4 text-blue-500 inline" />;
+  if (growth < -10) return <StudyPayIcon name="trendingDown" className="h-4 w-4 text-red-500 inline" />;
+  return <StudyPayIcon name="next" className="h-4 w-4 text-gray-500 inline" />;
   };
 
   if (loading) {
@@ -106,7 +106,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
   if (!analytics) {
     return (
       <Card className="p-6 text-center bg-dark-bg-secondary border-dark-border-primary">
-        <div className="text-4xl mb-4">🏫</div>
+        <StudyPayIcon name="analytics" className="h-16 w-16 mx-auto mb-4 text-solana-purple-500" />
         <h3 className="font-semibold text-dark-text-primary mb-2">Campus Analytics Unavailable</h3>
         <p className="text-dark-text-secondary">
           Analytics will appear once campus has transaction data.
@@ -120,8 +120,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
       {/* Header with Controls */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-dark-text-primary">
-            🏫 Campus Analytics
+          <h1 className="text-3xl font-bold text-dark-text-primary flex items-center gap-2">
+            <StudyPayIcon name="analytics" className="h-8 w-8" />
+            Campus Analytics
           </h1>
           <p className="text-dark-text-secondary">
             Real-time insights into campus payment ecosystem
@@ -145,8 +146,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
       {/* System Health Status */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-dark-text-primary">
-            🔧 System Health
+          <h2 className="text-xl font-semibold text-dark-text-primary flex items-center gap-2">
+            <StudyPayIcon name="settings" className="h-5 w-5" />
+            System Health
           </h2>
           
           <div className="flex items-center space-x-2">
@@ -167,7 +169,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
           </div>
           
           <div className="text-center">
-            <div className="text-2xl mb-1">⚡</div>
+            <StudyPayIcon name="speed" className="h-6 w-6 mx-auto mb-2 text-solana-purple-500" />
             <div className={`text-lg font-bold ${getHealthColor(analytics.overview.systemHealth.networkPerformance)}`}>
               {analytics.overview.systemHealth.networkPerformance}%
             </div>
@@ -175,7 +177,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
           </div>
           
           <div className="text-center">
-            <div className="text-2xl mb-1">🔗</div>
+            <StudyPayIcon name="analytics" className="h-6 w-6 mx-auto mb-2 text-solana-purple-500" />
             <div className={`text-lg font-bold ${getHealthColor(analytics.overview.systemHealth.blockchainSync)}`}>
               {analytics.overview.systemHealth.blockchainSync}%
             </div>
@@ -183,7 +185,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
           </div>
           
           <div className="text-center">
-            <div className="text-2xl mb-1">📱</div>
+            <StudyPayIcon name="mobile" className="h-6 w-6 mx-auto mb-2 text-solana-purple-500" />
             <div className={`text-lg font-bold ${getHealthColor(analytics.overview.systemHealth.appStability)}`}>
               {analytics.overview.systemHealth.appStability}%
             </div>
@@ -194,8 +196,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
 
       {/* Real-time Activity */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h2 className="text-xl font-semibold text-dark-text-primary mb-4">
-          ⚡ Real-time Activity
+        <h2 className="text-xl font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="speed" className="h-5 w-5" />
+          Real-time Activity
         </h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -230,8 +233,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
         
         {realTimeData && (
           <div className="mt-4 p-3 bg-dark-bg-tertiary rounded-lg">
-            <div className="text-sm text-green-400">
-              🔔 Latest: {realTimeData.newTransactions} new transactions in the last minute
+            <div className="text-sm text-green-400 flex items-center gap-1">
+              <StudyPayIcon name="info" className="inline h-4 w-4 text-green-400" />
+              Latest: {realTimeData.newTransactions} new transactions in the last minute
             </div>
           </div>
         )}
@@ -248,7 +252,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
               </p>
               <p className="text-xs text-dark-text-muted">Registered users</p>
             </div>
-            <div className="text-3xl">👨‍🎓</div>
+            <StudyPayIcon name="student" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -261,7 +265,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
               </p>
               <p className="text-xs text-dark-text-muted">Campus partners</p>
             </div>
-            <div className="text-3xl">🏪</div>
+            <StudyPayIcon name="vendor" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -276,7 +280,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
                 ≈ ₦{solToNaira(analytics.financial.dailyVolume).toFixed(0)}
               </p>
             </div>
-            <div className="text-3xl">💰</div>
+            <StudyPayIcon name="coins" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -289,15 +293,16 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
               </p>
               <p className="text-xs text-dark-text-muted">Per purchase</p>
             </div>
-            <div className="text-3xl">📊</div>
+            <StudyPayIcon name="analytics" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
       </div>
 
       {/* Popular Vendors */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h2 className="text-xl font-semibold text-dark-text-primary mb-4">
-          🏆 Top Performing Vendors
+        <h2 className="text-xl font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="trophy" className="h-5 w-5" />
+          Top Performing Vendors
         </h2>
         
         <div className="space-y-4">
@@ -330,8 +335,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
       {/* Trends and Growth */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-          <h2 className="text-xl font-semibold text-dark-text-primary mb-4">
-            📈 Growth Trends
+          <h2 className="text-xl font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+            <StudyPayIcon name="trending" className="h-5 w-5" />
+            Growth Trends
           </h2>
           
           <div className="space-y-4">
@@ -368,8 +374,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
         </Card>
 
         <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-          <h2 className="text-xl font-semibold text-dark-text-primary mb-4">
-            🕒 Peak Hours
+          <h2 className="text-xl font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+            <StudyPayIcon name="clock" className="h-5 w-5" />
+            Peak Hours
           </h2>
           
           <div className="space-y-3">
@@ -401,8 +408,9 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
 
       {/* Campus Categories */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h2 className="text-xl font-semibold text-dark-text-primary mb-4">
-          🏷️ Popular Categories
+        <h2 className="text-xl font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="analytics" className="h-5 w-5" />
+          Popular Categories
         </h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

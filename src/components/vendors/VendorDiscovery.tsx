@@ -13,6 +13,7 @@ import {
   VendorSearchFilters,
 } from "@/lib/vendors/vendorRegistry";
 import { formatCurrency, solToNaira } from "@/lib/solana/utils";
+import { StudyPayIcon, CategoryIcon } from "@/lib/utils/iconMap";
 import BigNumber from "bignumber.js";
 
 interface VendorDiscoveryProps {
@@ -58,13 +59,13 @@ export default function VendorDiscovery({
   };
 
   const categories = [
-    { value: "", label: "All Categories", emoji: "🏪" },
-    { value: "food", label: "Food & Drinks", emoji: "🍽️" },
-    { value: "books", label: "Books & Stationery", emoji: "📚" },
-    { value: "electronics", label: "Electronics", emoji: "💻" },
-    { value: "services", label: "Services", emoji: "🔧" },
-    { value: "transport", label: "Transport", emoji: "🚌" },
-    { value: "printing", label: "Printing", emoji: "🖨️" },
+    { value: "", label: "All Categories", icon: "other" as const },
+    { value: "food", label: "Food & Drinks", icon: "food" as const },
+    { value: "books", label: "Books & Stationery", icon: "books" as const },
+    { value: "electronics", label: "Electronics", icon: "electronics" as const },
+    { value: "services", label: "Services", icon: "services" as const },
+    { value: "transport", label: "Transport", icon: "transport" as const },
+    { value: "printing", label: "Printing", icon: "printing" as const },
   ];
 
   const getVendorStatusColor = (vendor: VendorProfile) => {
@@ -130,9 +131,10 @@ export default function VendorDiscovery({
                   onClick={() =>
                     handleFilterChange("category", category.value || undefined)
                   }
-                  className="text-xs"
+                  className="text-xs flex items-center gap-1"
                 >
-                  {category.emoji} {category.label}
+                  <StudyPayIcon name={category.icon} size={14} />
+                  {category.label}
                 </Button>
               ))}
             </div>
@@ -146,7 +148,12 @@ export default function VendorDiscovery({
                   handleFilterChange("isOpen", !searchFilters.isOpen)
                 }
               >
-                {searchFilters.isOpen ? "✅" : "⏰"} Open Now
+                <StudyPayIcon 
+                  name={searchFilters.isOpen ? "success" : "clock"} 
+                  size={14} 
+                  className="inline mr-1" 
+                />
+                Open Now
               </Button>
 
               <Button
@@ -159,7 +166,11 @@ export default function VendorDiscovery({
                   )
                 }
               >
-                {searchFilters.acceptsCrypto ? "💰" : "🪙"} Crypto Accepted
+                {searchFilters.acceptsCrypto ? (
+                  <StudyPayIcon name="coins" className="inline h-4 w-4" />
+                ) : (
+                  <StudyPayIcon name="money" className="inline h-4 w-4" />
+                )} Crypto Accepted
               </Button>
             </div>
           </div>
@@ -193,13 +204,10 @@ export default function VendorDiscovery({
                       {/* Header */}
                       <div className="flex items-center space-x-3 mb-2">
                         <div className="text-2xl">
-                          {vendor.category === "food" && "🍽️"}
-                          {vendor.category === "books" && "📚"}
-                          {vendor.category === "electronics" && "💻"}
-                          {vendor.category === "services" && "🔧"}
-                          {vendor.category === "transport" && "🚌"}
-                          {vendor.category === "printing" && "🖨️"}
-                          {vendor.category === "other" && "🏪"}
+                          <CategoryIcon 
+                            category={vendor.category as any} 
+                            size={32} 
+                          />
                         </div>
 
                         <div className="flex-1">
@@ -208,8 +216,9 @@ export default function VendorDiscovery({
                               {vendor.businessName}
                             </h3>
                             {vendor.verification.isVerified && (
-                              <Badge variant="success" className="text-xs">
-                                ✅ Verified
+                              <Badge variant="success" className="text-xs flex items-center gap-1">
+                                <StudyPayIcon name="verified" size={12} />
+                                Verified
                               </Badge>
                             )}
                           </div>
@@ -232,19 +241,19 @@ export default function VendorDiscovery({
                       {/* Stats */}
                       <div className="flex items-center space-x-4 text-xs text-dark-text-secondary">
                         <div className="flex items-center space-x-1">
-                          <span>⭐</span>
+                          <StudyPayIcon name="star" size={12} />
                           <span>{vendor.rating.average.toFixed(1)}</span>
                           <span>({vendor.rating.totalReviews})</span>
                         </div>
 
                         <div className="flex items-center space-x-1">
-                          <span>📦</span>
+                          <StudyPayIcon name="package" size={12} />
                           <span>{vendor.stats.totalTransactions} orders</span>
                         </div>
 
                         {vendor.pricing.averageOrderValue && (
                           <div className="flex items-center space-x-1">
-                            <span>💰</span>
+                            <StudyPayIcon name="coins" className="inline h-4 w-4" />
                             <span>
                               ~
                               {formatCurrency(
@@ -304,7 +313,7 @@ export default function VendorDiscovery({
                       {vendor.pricing.acceptsCrypto && (
                         <div className="mt-2">
                           <Badge variant="primary" className="text-xs">
-                            💰 SOL
+                            <StudyPayIcon name="coins" className="inline h-4 w-4" /> SOL
                           </Badge>
                         </div>
                       )}
@@ -330,7 +339,9 @@ export default function VendorDiscovery({
           </>
         ) : (
           <Card className="p-8 text-center bg-dark-bg-secondary border-dark-border-primary">
-            <div className="text-4xl mb-4">🔍</div>
+            <div className="text-4xl mb-4">
+              <StudyPayIcon name="search" className="h-10 w-10 text-solana-purple-500" />
+            </div>
             <h3 className="font-semibold text-dark-text-primary mb-2">
               No vendors found
             </h3>

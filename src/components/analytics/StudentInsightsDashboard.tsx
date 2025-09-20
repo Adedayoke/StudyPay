@@ -11,6 +11,7 @@ import { analyticsEngine, StudentInsights } from '@/lib/analytics/analyticsEngin
 import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
 import { VendorProfile, vendorRegistry } from '@/lib/vendors/vendorRegistry';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 
 interface StudentInsightsDashboardProps {
   walletAddress: string;
@@ -60,12 +61,12 @@ export default function StudentInsightsDashboard({
     return vendors.find(v => v.id === vendorId);
   };
 
-  const getSpendingTrendIcon = (trend: string) => {
+  const getSpendingTrendIcon = (trend: string, size: number = 16) => {
     switch (trend) {
-      case 'increasing': return '📈';
-      case 'decreasing': return '📉';
-      case 'stable': return '➡️';
-      default: return '📊';
+      case 'increasing': return <StudyPayIcon name="trending" size={size} />;
+      case 'decreasing': return <StudyPayIcon name="trendingDown" size={size}/>;
+      case 'stable': return <StudyPayIcon name="stats" size={size} />;
+      default: return <StudyPayIcon name="analytics" size={size} />;
     }
   };
 
@@ -78,22 +79,22 @@ export default function StudentInsightsDashboard({
     }
   };
 
-  const getBudgetStatusIcon = (status: string) => {
+  const getBudgetStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
-      case 'under': return '✅';
-      case 'near': return '⚠️';
-      case 'over': return '🚨';
-      default: return '📊';
+      case 'under': return <StudyPayIcon name="success" size={size} />;
+      case 'near': return <StudyPayIcon name="warning" size={size} />;
+      case 'over': return <StudyPayIcon name="error" size={size} />;
+      default: return <StudyPayIcon name="analytics" size={size} />;
     }
   };
 
-  const getRecommendationIcon = (type: string) => {
+  const getRecommendationIcon = (type: string, size: number = 16) => {
     switch (type) {
-      case 'savings': return '💰';
-      case 'discovery': return '🔍';
-      case 'budget': return '📊';
-      case 'habit': return '🎯';
-      default: return '💡';
+      case 'savings': return <StudyPayIcon name="money" size={size} />;
+      case 'discovery': return <StudyPayIcon name="search" size={size} />;
+      case 'budget': return <StudyPayIcon name="analytics" size={size} />;
+      case 'habit': return <StudyPayIcon name="target" size={size} />;
+      default: return <StudyPayIcon name="lightbulb" size={size} />;
     }
   };
 
@@ -109,7 +110,9 @@ export default function StudentInsightsDashboard({
   if (!insights) {
     return (
       <Card className="p-6 text-center bg-dark-bg-secondary border-dark-border-primary">
-        <div className="text-4xl mb-4">📊</div>
+        <div className="text-4xl mb-4 flex justify-center">
+          <StudyPayIcon name="analytics" size={48} />
+        </div>
         <h3 className="font-semibold text-dark-text-primary mb-2">No Insights Available</h3>
         <p className="text-dark-text-secondary">
           Start making transactions to see personalized insights!
@@ -124,7 +127,7 @@ export default function StudentInsightsDashboard({
       <div className="flex md:flex-row flex-col gap-3 md:items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-dark-text-primary">
-            🧠 Your Spending Insights
+            <StudyPayIcon name="lightbulb" className="inline h-6 w-6 mr-1" /> Your Spending Insights
           </h2>
           <p className="text-dark-text-secondary">
             Personalized analytics and smart recommendations
@@ -158,7 +161,7 @@ export default function StudentInsightsDashboard({
                 ≈ ₦{solToNaira(insights.spendingAnalytics.totalSpent).toFixed(0)}
               </p>
             </div>
-            <div className="text-3xl">💸</div>
+            <StudyPayIcon name="coins" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -171,7 +174,7 @@ export default function StudentInsightsDashboard({
               </p>
               <p className="text-xs text-dark-text-muted">Daily average</p>
             </div>
-            <div className="text-3xl">📅</div>
+            <StudyPayIcon name="calendar" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -186,7 +189,7 @@ export default function StudentInsightsDashboard({
                 {insights.spendingAnalytics.frequencyPerWeek.toFixed(1)}/week
               </p>
             </div>
-            <div className="text-3xl">🛒</div>
+            <StudyPayIcon name="shopping-bag" className="h-7 w-7 text-solana-purple-500" />
           </div>
         </Card>
       </div>
@@ -241,7 +244,7 @@ export default function StudentInsightsDashboard({
       {/* Spending Categories */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          🏷️ Spending by Category
+          <StudyPayIcon name="analytics" className="inline h-5 w-5 mr-1" /> Spending by Category
         </h3>
         
         <div className="space-y-4">
@@ -273,7 +276,8 @@ export default function StudentInsightsDashboard({
       {/* Budget Analysis */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          📊 Budget Analysis
+          <StudyPayIcon name="analytics" size={20} />
+          Budget Analysis
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -310,7 +314,7 @@ export default function StudentInsightsDashboard({
             <div className="space-y-2">
               {insights.insights.spendingHabits.map((habit, index) => (
                 <div key={index} className="flex items-center space-x-2">
-                  <span className="text-sm">🔹</span>
+                  <span className="text-sm"><StudyPayIcon name="star" className="h-3 w-3 text-yellow-400" /></span>
                   <span className="text-sm text-dark-text-secondary">{habit}</span>
                 </div>
               ))}
@@ -323,8 +327,9 @@ export default function StudentInsightsDashboard({
       {showRecommendations && insights.recommendations.length > 0 && (
         <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-dark-text-primary">
-              💡 Smart Recommendations
+            <h3 className="text-lg font-semibold text-dark-text-primary flex items-center gap-2">
+              <StudyPayIcon name="lightbulb" size={20} />
+              Smart Recommendations
             </h3>
             <Button 
               variant="secondary" 
@@ -358,7 +363,10 @@ export default function StudentInsightsDashboard({
                     
                     {rec.potentialSavings && (
                       <div className="text-sm text-green-500">
-                        💰 Potential savings: {formatCurrency(rec.potentialSavings, 'SOL')}
+                        <span className="flex items-center gap-1">
+                          <StudyPayIcon name="money" size={14} />
+                          Potential savings: {formatCurrency(rec.potentialSavings, 'SOL')}
+                        </span>
                       </div>
                     )}
                     
@@ -434,7 +442,8 @@ export default function StudentInsightsDashboard({
       {/* Goals and Achievements */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          🎯 Goals & Achievements
+          <StudyPayIcon name="target" size={20} />
+          Goals & Achievements
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -443,7 +452,9 @@ export default function StudentInsightsDashboard({
             <div className="space-y-2">
               {insights.insights.savingsOpportunities.map((opportunity, index) => (
                 <div key={index} className="flex items-center space-x-2">
-                  <span className="text-green-500">💰</span>
+                  <span className="text-green-500">
+                    <StudyPayIcon name="money" size={16} />
+                  </span>
                   <span className="text-sm text-dark-text-secondary">{opportunity}</span>
                 </div>
               ))}
@@ -454,21 +465,23 @@ export default function StudentInsightsDashboard({
             <h4 className="font-medium text-dark-text-primary mb-3">Achievements</h4>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <span className="text-yellow-500">🏆</span>
+                <span className="text-yellow-500"><StudyPayIcon name="trophy" className="h-4 w-4" /></span>
                 <span className="text-sm text-dark-text-secondary">
                   Smart Spender - {insights.spendingAnalytics.totalTransactions} transactions
                 </span>
               </div>
               
               <div className="flex items-center space-x-2">
-                <span className="text-blue-500">🎯</span>
+                <span className="text-blue-500">
+                  <StudyPayIcon name="target" size={16} />
+                </span>
                 <span className="text-sm text-dark-text-secondary">
                   Budget Conscious - {insights.insights.budgetUtilization < 90 ? 'Under budget' : 'Budget aware'}
                 </span>
               </div>
               
               <div className="flex items-center space-x-2">
-                <span className="text-purple-500">🔄</span>
+                <span className="text-purple-500"><StudyPayIcon name="refresh-cw" className="h-4 w-4" /></span>
                 <span className="text-sm text-dark-text-secondary">
                   Regular User - {insights.spendingAnalytics.frequencyPerWeek.toFixed(1)} transactions/week
                 </span>

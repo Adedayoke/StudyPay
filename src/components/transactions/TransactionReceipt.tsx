@@ -3,6 +3,7 @@
 import React from 'react';
 import { Transaction } from '@/lib/types/payment';
 import { formatSOL } from '@/lib/utils/formatting';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 
 interface TransactionReceiptProps {
   transaction: Transaction;
@@ -15,18 +16,18 @@ export default function TransactionReceipt({
   onClose, 
   onViewOnExplorer 
 }: TransactionReceiptProps) {
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
       case 'confirmed':
-        return '✅';
+        return <StudyPayIcon name="success" size={size} />;
       case 'finalized':
-        return '🎉';
+        return <StudyPayIcon name="celebrate" size={size} />;
       case 'failed':
-        return '❌';
+        return <StudyPayIcon name="error" size={size} />;
       case 'pending':
-        return '⏳';
+        return <StudyPayIcon name="clock" size={size} />;
       default:
-        return '📝';
+        return <StudyPayIcon name="document" size={size} />;
     }
   };
 
@@ -159,7 +160,7 @@ export default function TransactionReceipt({
               onClick={() => onViewOnExplorer(transaction.signature!)}
               className="w-full bg-[#9945FF] hover:bg-[#8A3FE8] text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
-              <span>🔍</span>
+              <StudyPayIcon name="search" className="h-5 w-5" />
               View on Solana Explorer
             </button>
           )}
@@ -185,7 +186,7 @@ Powered by Solana Blockchain
             }}
             className="w-full bg-[#2D2D2D] hover:bg-[#3D3D3D] text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
-            <span>📋</span>
+            <StudyPayIcon name="document" className="h-5 w-5" />
             Copy Receipt Details
           </button>
 

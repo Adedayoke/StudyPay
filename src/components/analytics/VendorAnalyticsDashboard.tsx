@@ -11,6 +11,7 @@ import { analyticsEngine, VendorAnalytics } from '@/lib/analytics/analyticsEngin
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 
 interface VendorAnalyticsDashboardProps {
@@ -89,17 +90,17 @@ export default function VendorAnalyticsDashboard({
     return 'text-yellow-500';
   };
 
-  const getGrowthIcon = (growth: number) => {
-    if (growth > 0) return '📈';
-    if (growth < 0) return '📉';
-    return '➡️';
+  const getGrowthIcon = (growth: number, size: number = 16) => {
+    if (growth > 0) return <StudyPayIcon name="trending" size={size} />;
+    if (growth < 0) return <StudyPayIcon name="trendingDown" size={size} />;
+    return <StudyPayIcon name="stats" size={size} />;
   };
 
-  const getTrendIcon = (trend: string) => {
+  const getTrendIcon = (trend: string, size: number = 16) => {
     switch (trend) {
-      case 'up': return '🚀';
-      case 'down': return '📉';
-      default: return '📊';
+      case 'up': return <StudyPayIcon name="rocket" size={size} />;
+      case 'down': return <StudyPayIcon name="trendingDown" size={size} />;
+      default: return <StudyPayIcon name="analytics" size={size} />;
     }
   };
 
@@ -115,7 +116,9 @@ export default function VendorAnalyticsDashboard({
   if (!analytics) {
     return (
       <Card className="p-6 text-center bg-dark-bg-secondary border-dark-border-primary">
-        <div className="text-4xl mb-4">📊</div>
+        <div className="text-4xl mb-4 flex justify-center">
+          <StudyPayIcon name="analytics" size={48} />
+        </div>
         <h3 className="font-semibold text-dark-text-primary mb-2">No Analytics Available</h3>
         <p className="text-dark-text-secondary">
           Analytics will appear once you have transaction data.
@@ -128,8 +131,9 @@ export default function VendorAnalyticsDashboard({
     <div className="space-y-6">
       {/* Header with Timeframe Selection */}
       <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
-        <h2 className="text-2xl font-bold text-dark-text-primary">
-          📊 Analytics Dashboard
+        <h2 className="text-2xl font-bold text-dark-text-primary flex items-center gap-2">
+          <StudyPayIcon name="analytics" size={24} />
+          Analytics Dashboard
         </h2>
         
         <div className="flex space-x-2">
@@ -165,7 +169,7 @@ export default function VendorAnalyticsDashboard({
         {realTimeData && (
           <div className="mt-3 p-3 bg-dark-bg-tertiary rounded-lg">
             <div className="text-sm text-green-400">
-              🔔 New transaction: {formatCurrency(realTimeData.newTransaction.amount, 'SOL')} 
+              <StudyPayIcon name="info" className="inline h-4 w-4" /> New transaction: {formatCurrency(realTimeData.newTransaction.amount, 'SOL')} 
               for {realTimeData.newTransaction.item}
             </div>
             <div className="text-xs text-dark-text-muted mt-1">
@@ -208,7 +212,7 @@ export default function VendorAnalyticsDashboard({
                 {timeframe} total
               </p>
             </div>
-            <div className="text-2xl">📦</div>
+            <StudyPayIcon name="package" className="h-6 w-6 text-solana-purple-500" />
           </div>
         </Card>
 
@@ -223,7 +227,9 @@ export default function VendorAnalyticsDashboard({
                 per transaction
               </p>
             </div>
-            <div className="text-2xl">💰</div>
+            <div className="text-2xl">
+              <StudyPayIcon name="money" size={32} />
+            </div>
           </div>
         </Card>
 
@@ -238,15 +244,18 @@ export default function VendorAnalyticsDashboard({
                 #{analytics.metrics.performance.categoryRank} in {vendor.category}
               </p>
             </div>
-            <div className="text-2xl">🏆</div>
+            <div className="text-2xl">
+              <StudyPayIcon name="trophy" size={32} />
+            </div>
           </div>
         </Card>
       </div>
 
       {/* Current Activity */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          ⚡ Current Activity
+        <h3 className="text-lg font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="speed" size={20} />
+          Current Activity
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -323,7 +332,7 @@ export default function VendorAnalyticsDashboard({
         {/* Top Selling Items */}
         <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
           <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-            🏆 Top Selling Items
+            <StudyPayIcon name="trophy" className="inline h-5 w-5 mr-1" /> Top Selling Items
           </h3>
           
           <div className="space-y-3">
@@ -359,7 +368,7 @@ export default function VendorAnalyticsDashboard({
       {/* Customer Analytics */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          👥 Customer Analytics
+          <StudyPayIcon name="user" className="inline h-5 w-5 mr-1" /> Customer Analytics
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -388,8 +397,9 @@ export default function VendorAnalyticsDashboard({
 
       {/* Hourly Breakdown Chart */}
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
-        <h3 className="text-lg font-semibold text-dark-text-primary mb-4">
-          📈 Hourly Sales Pattern
+        <h3 className="text-lg font-semibold text-dark-text-primary mb-4 flex items-center gap-2">
+          <StudyPayIcon name="trending" size={20} />
+          Hourly Sales Pattern
         </h3>
         
         <div className="space-y-2">

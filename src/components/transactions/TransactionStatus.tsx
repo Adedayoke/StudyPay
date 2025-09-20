@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 
 interface TransactionStatusProps {
   signature: string;
@@ -131,16 +132,16 @@ export default function TransactionStatus({
     return () => clearInterval(interval);
   }, [signature, isMonitoring, connection]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
       case 'completed':
-        return '✅';
+        return <StudyPayIcon name="success" size={size} />;
       case 'current':
-        return '⏳';
+        return <StudyPayIcon name="clock" size={size} />;
       case 'failed':
-        return '❌';
+        return <StudyPayIcon name="error" size={size} />;
       default:
-        return '⭕';
+        return <StudyPayIcon name="info" size={size} />;
     }
   };
 
@@ -186,10 +187,10 @@ export default function TransactionStatus({
     <div className="bg-[#1A1A1A] border border-[#333] rounded-xl p-6">
       {/* Header */}
       <div className="text-center mb-6">
-        <div className="text-2xl mb-2">
-          {currentStatus === 'finalized' ? '🎉' : 
-           currentStatus === 'confirmed' ? '✅' : 
-           currentStatus === 'failed' ? '❌' : '⏳'}
+        <div className="text-2xl mb-2 flex justify-center">
+          {currentStatus === 'finalized' ? <StudyPayIcon name="celebrate" size={32} /> : 
+           currentStatus === 'confirmed' ? <StudyPayIcon name="success" size={32} /> : 
+           currentStatus === 'failed' ? <StudyPayIcon name="error" size={32} /> : <StudyPayIcon name="clock" size={32} />}
         </div>
         <h3 className={`text-lg font-semibold ${getOverallStatusColor()}`}>
           {getOverallStatusText()}

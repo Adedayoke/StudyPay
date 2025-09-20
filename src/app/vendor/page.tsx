@@ -8,6 +8,7 @@
 import React from "react";
 import { Card, Button, Alert, Badge } from "@/components/ui";
 import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
+import { StudyPayIcon } from "@/lib/utils/iconMap";
 import { FoodPaymentQR } from "@/components/payments/SolanaPayQR";
 import VendorAnalyticsDashboard from "@/components/analytics/VendorAnalyticsDashboard";
 import { formatCurrency, solToNaira } from "@/lib/solana/utils";
@@ -94,7 +95,19 @@ export default function VendorDashboard() {
                     {vendorInfo.location}
                   </p>
                   <Badge variant="success">
-                    {vendorInfo.isVerified ? "✅ Verified" : "⏳ Pending"}
+                    <div className="flex items-center gap-1">
+                      {vendorInfo.isVerified ? (
+                        <>
+                          <StudyPayIcon name="verified" size={14} />
+                          <span>Verified</span>
+                        </>
+                      ) : (
+                        <>
+                          <StudyPayIcon name="warning" size={14} />
+                          <span>Pending</span>
+                        </>
+                      )}
+                    </div>
                   </Badge>
                 </div>
                 <div className="md:text-right">
@@ -125,7 +138,10 @@ export default function VendorDashboard() {
                       : "border-transparent text-dark-text-secondary hover:text-dark-text-primary hover:border-dark-border-secondary"
                   }`}
                 >
-                  📊 Overview
+                  <div className="flex items-center gap-2">
+                    <StudyPayIcon name="analytics" size={16} />
+                    <span>Overview</span>
+                  </div>
                 </button>
 
                 <button
@@ -239,10 +255,16 @@ export default function VendorDashboard() {
                   className="w-full"
                   onClick={() => setActiveTab("analytics")}
                 >
-                  📊 View Analytics
+                  <div className="flex items-center justify-center gap-2">
+                    <StudyPayIcon name="analytics" size={16} />
+                    <span>View Analytics</span>
+                  </div>
                 </Button>
                 <Button variant="secondary" size="sm" className="w-full">
-                  💼 Manage Menu
+                  <div className="flex items-center justify-center gap-2">
+                    <StudyPayIcon name="settings" size={16} />
+                    <span>Manage Menu</span>
+                  </div>
                 </Button>
                 <Button
                   variant="secondary"

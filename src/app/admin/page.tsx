@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge } from '@/components/ui';
 import { WalletGuard, useStudyPayWallet, WalletButton } from '@/components/wallet/WalletProvider';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 import CampusAnalyticsDashboard from '@/components/analytics/CampusAnalyticsDashboard';
 
 export default function CampusAdminDashboard() {
@@ -26,7 +27,10 @@ export default function CampusAdminDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary">
-                🏫 Admin Access
+                <div className="flex items-center gap-1">
+                  <StudyPayIcon name="admin" size={14} />
+                  <span>Admin Access</span>
+                </div>
               </Badge>
               <WalletButton />
             </div>
@@ -69,7 +73,10 @@ export default function CampusAdminDashboard() {
                       : 'border-transparent text-dark-text-secondary hover:text-dark-text-primary hover:border-dark-border-secondary'
                   }`}
                 >
-                  📊 Analytics Dashboard
+                  <div className="flex items-center gap-2">
+                    <StudyPayIcon name="analytics" size={16} />
+                    <span>Analytics Dashboard</span>
+                  </div>
                 </button>
                 
                 <button
@@ -80,7 +87,7 @@ export default function CampusAdminDashboard() {
                       : 'border-transparent text-dark-text-secondary hover:text-dark-text-primary hover:border-dark-border-secondary'
                   }`}
                 >
-                  🏪 Vendor Management
+                  <span className="inline-flex items-center gap-1"><StudyPayIcon name="vendor" className="inline h-4 w-4" /> Vendor Management</span>
                 </button>
                 
                 <button
@@ -91,7 +98,10 @@ export default function CampusAdminDashboard() {
                       : 'border-transparent text-dark-text-secondary hover:text-dark-text-primary hover:border-dark-border-secondary'
                   }`}
                 >
-                  👨‍🎓 Student Analytics
+                  <div className="flex items-center gap-2">
+                    <StudyPayIcon name="student" size={16} />
+                    <span>Student Analytics</span>
+                  </div>
                 </button>
                 
                 <button

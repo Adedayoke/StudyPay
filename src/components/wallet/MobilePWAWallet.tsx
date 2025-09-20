@@ -30,6 +30,9 @@ import { clusterApiUrl } from '@solana/web3.js';
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
 
+// StudyPay components
+import { StudyPayIcon } from '../../lib/utils/iconMap';
+
 // =============================================================================
 // Mobile Detection and Wallet Configuration
 // =============================================================================
@@ -160,8 +163,9 @@ export function PWAWalletButton() {
   if (showMobileInstructions) {
     return (
       <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-        <h3 className="font-semibold text-yellow-800 mb-2">
-          📱 Mobile Wallet Instructions
+        <h3 className="font-semibold text-yellow-800 mb-2 flex items-center justify-center gap-2">
+          <StudyPayIcon name="mobile" size={16} />
+          Mobile Wallet Instructions
         </h3>
         <p className="text-sm text-yellow-700 mb-3">
           For the best experience, please:
@@ -193,8 +197,9 @@ export function PWAWalletButton() {
       />
       
       {deviceType === 'mobile' && !connected && !connecting && (
-        <p className="text-xs text-gray-500 text-center max-w-xs">
-          📱 Mobile tip: Install Phantom or Solflare app for best experience
+        <p className="text-xs text-gray-500 text-center max-w-xs flex items-center justify-center gap-1">
+          <StudyPayIcon name="mobile" size={12} />
+          Mobile tip: Install Phantom or Solflare app for best experience
         </p>
       )}
       
@@ -231,8 +236,9 @@ export function MobileWalletStatus() {
     return (
       <div className="flex items-center space-x-2 text-green-600">
         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span className="text-sm">
-          {wallet.adapter.name} {deviceType === 'mobile' ? '📱' : '💻'}
+        <span className="text-sm flex items-center gap-1">
+          {wallet.adapter.name}
+          <StudyPayIcon name={deviceType === 'mobile' ? 'mobile' : 'desktop'} size={12} />
         </span>
       </div>
     );

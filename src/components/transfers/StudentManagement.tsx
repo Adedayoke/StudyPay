@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Card, Button, Input, Alert, Badge } from '@/components/ui';
 import { formatSOL, formatRelativeTime } from '@/lib/utils/formatting';
 import BigNumber from 'bignumber.js';
+import { StudyPayIcon } from '@/lib/utils/iconMap';
 
 interface Student {
   id: string;
@@ -107,7 +108,7 @@ export default function StudentManagement({
         {/* Students List */}
         {students.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
+            <StudyPayIcon name="parent" className="h-12 w-12 mb-4 text-solana-purple-500" />
             <h4 className="text-lg font-medium text-white mb-2">No Students Connected</h4>
             <p className="text-gray-400 mb-4">
               Add your children's wallet addresses to start sending money instantly.

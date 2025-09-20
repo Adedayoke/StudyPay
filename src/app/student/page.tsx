@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Card, Button, Alert, Badge } from "@/components/ui";
 import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
+import { StudyPayIcon } from "@/lib/utils/iconMap";
 import {
   SolanaPayScanner,
   PaymentConfirmation,
@@ -140,7 +141,10 @@ export default function StudentDashboard() {
                           : "border-transparent text-gray-400 hover:text-white hover:border-gray-300"
                       }`}
                     >
-                      🧠 Insights
+                      <div className="flex items-center gap-2">
+                        <StudyPayIcon name="analytics" size={16} />
+                        <span>Insights</span>
+                      </div>
                     </li>
                   </ul>
                 )}
@@ -194,7 +198,10 @@ export default function StudentDashboard() {
                       : "border-transparent text-gray-400 hover:text-white hover:border-gray-300"
                   }`}
                 >
-                  🧠 Insights
+                  <div className="flex items-center gap-2">
+                    <StudyPayIcon name="analytics" size={16} />
+                    <span>Insights</span>
+                  </div>
                 </button>
               </nav>
             </div>
@@ -235,14 +242,20 @@ export default function StudentDashboard() {
                   <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button onClick={openScanner} className="w-full">
-                      📱 Scan & Pay
+                      <div className="flex items-center justify-center gap-2">
+                        <StudyPayIcon name="scan" size={16} />
+                        <span>Scan & Pay</span>
+                      </div>
                     </Button>
                     <Button
                       variant="secondary"
                       className="w-full"
                       onClick={() => setActiveTab("transactions")}
                     >
-                      📊 View Transactions
+                      <div className="flex items-center justify-center gap-2">
+                        <StudyPayIcon name="analytics" size={16} />
+                        <span>View Transactions</span>
+                      </div>
                     </Button>
                   </div>
                 </Card>
@@ -297,7 +310,9 @@ export default function StudentDashboard() {
               <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
               {transactions.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-4xl mb-2">📊</div>
+                  <div className="flex justify-center mb-2">
+                    <StudyPayIcon name="analytics" size={48} className="text-gray-400" />
+                  </div>
                   <p className="text-gray-600">No transactions yet</p>
                   <p className="text-sm text-gray-500 mt-1">
                     Your payment history will appear here
@@ -407,14 +422,14 @@ export default function StudentDashboard() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className="text-2xl">
-                          {tx.category === "food" && "🍽️"}
-                          {tx.category === "transport" && "🚌"}
-                          {tx.category === "books" && "📚"}
-                          {tx.category === "services" && "🔧"}
-                          {tx.category === "electronics" && "💻"}
-                          {tx.category === "printing" && "🖨️"}
-                          {tx.category === "micro" && "💰"}
-                          {tx.category === "snacks" && "🍿"}
+                          {tx.category === "food" && <StudyPayIcon name="food" size={24} className="text-orange-500" />}
+                          {tx.category === "transport" && <StudyPayIcon name="transport" size={24} className="text-blue-500" />}
+                          {tx.category === "books" && <StudyPayIcon name="books" size={24} className="text-green-500" />}
+                          {tx.category === "services" && <StudyPayIcon name="services" size={24} className="text-purple-500" />}
+                          {tx.category === "electronics" && <StudyPayIcon name="other" size={24} className="text-gray-500" />}
+                          {tx.category === "printing" && <StudyPayIcon name="other" size={24} className="text-gray-500" />}
+                          {tx.category === "micro" && <StudyPayIcon name="money" size={24} className="text-yellow-500" />}
+                          {tx.category === "snacks" && <StudyPayIcon name="food" size={24} className="text-red-500" />}
                           {![
                             "food",
                             "transport",
@@ -424,7 +439,7 @@ export default function StudentDashboard() {
                             "printing",
                             "micro",
                             "snacks",
-                          ].includes(tx.category) && "💳"}
+                          ].includes(tx.category) && <StudyPayIcon name="payment" size={24} className="text-gray-400" />}
                         </div>
                         <div>
                           <div className="font-medium text-sm text-dark-text-primary">
@@ -525,17 +540,19 @@ export default function StudentDashboard() {
                 }, {} as Record<string, BigNumber>);
 
               const categories = [
-                { key: "food", emoji: "🍽️", label: "Food & Drinks" },
-                { key: "transport", emoji: "🚌", label: "Transport" },
-                { key: "books", emoji: "📚", label: "Academic" },
-              ];
+                { key: "food", icon: "food", label: "Food & Drinks", color: "text-orange-500" },
+                { key: "transport", icon: "transport", label: "Transport", color: "text-blue-500" },
+                { key: "books", icon: "books", label: "Academic", color: "text-green-500" },
+              ] as const;
 
               return categories.map((category) => (
                 <Card
                   key={category.key}
                   className="text-center bg-dark-bg-secondary border-dark-border-primary"
                 >
-                  <div className="text-2xl mb-2">{category.emoji}</div>
+                  <div className="flex justify-center mb-2">
+                    <StudyPayIcon name={category.icon} size={32} className={category.color} />
+                  </div>
                   <div className="text-sm text-dark-text-secondary">
                     {category.label}
                   </div>

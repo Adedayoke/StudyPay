@@ -12,6 +12,7 @@ import {
 } from "@/components/wallet/WalletProvider";
 import { Card, Button, Alert } from "@/components/ui";
 import Logo from "@/components/ui/Logo";
+import { StudyPayIcon } from "@/lib/utils/iconMap";
 
 export default function HomePage() {
   return (
@@ -43,7 +44,9 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="text-center">
-              <div className="text-3xl mb-2">⚡</div>
+              <div className="flex justify-center mb-2">
+                <StudyPayIcon name="speed" size={48} className="text-yellow-500" />
+              </div>
               <h3 className="font-semibold mb-2 text-dark-text-primary">
                 Instant Transfers
               </h3>
@@ -53,7 +56,9 @@ export default function HomePage() {
             </Card>
 
             <Card className="text-center">
-              <div className="text-3xl mb-2">💰</div>
+              <div className="flex justify-center mb-2">
+                <StudyPayIcon name="money" size={48} className="text-green-500" />
+              </div>
               <h3 className="font-semibold mb-2 text-dark-text-primary">
                 Low Fees
               </h3>
@@ -63,7 +68,9 @@ export default function HomePage() {
             </Card>
 
             <Card className="text-center">
-              <div className="text-3xl mb-2">🎓</div>
+              <div className="flex justify-center mb-2">
+                <StudyPayIcon name="student" size={48} className="text-blue-500" />
+              </div>
               <h3 className="font-semibold mb-2 text-dark-text-primary">
                 Campus Focused
               </h3>
@@ -95,9 +102,12 @@ export default function HomePage() {
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
-              <h3 className="text-lg font-semibold mb-3 text-solana-green-500">
-                👨‍👩‍👧‍👦 For Parents
-              </h3>
+              <div className="flex items-center gap-3 mb-3">
+                <StudyPayIcon name="parent" size={24} className="text-solana-green-500" />
+                <h3 className="text-lg font-semibold text-solana-green-500">
+                  For Parents
+                </h3>
+              </div>
               <p className="text-sm text-gray-600 mb-4">
                 Send money to your children instantly from anywhere in the world
               </p>
@@ -112,9 +122,12 @@ export default function HomePage() {
             </Card>
 
             <Card>
-              <h3 className="text-lg font-semibold mb-3 text-purple-600">
-                🎓 For Students
-              </h3>
+              <div className="flex items-center gap-3 mb-3">
+                <StudyPayIcon name="student" size={24} className="text-purple-600" />
+                <h3 className="text-lg font-semibold text-purple-600">
+                  For Students
+                </h3>
+              </div>
               <p className="text-sm text-gray-600 mb-4">
                 Receive money instantly and pay for campus services with QR
                 codes
@@ -130,9 +143,12 @@ export default function HomePage() {
             </Card>
 
             <Card>
-              <h3 className="text-lg font-semibold mb-3 text-green-600">
-                🏪 For Vendors
-              </h3>
+              <div className="flex items-center gap-3 mb-3">
+                <StudyPayIcon name="vendor" size={24} className="text-green-600" />
+                <h3 className="text-lg font-semibold text-green-600">
+                  For Vendors
+                </h3>
+              </div>
               <p className="text-sm text-gray-600 mb-4">
                 Accept instant payments from students without cash hassles
               </p>

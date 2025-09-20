@@ -376,13 +376,32 @@ export async function executeSOLTransfer(
   paymentRequest: SolanaPayRequest
 ): Promise<string> {
   if (!senderWallet.publicKey) {
+    throw new Error('Wallet not connected - no public key available');
+  }
+
+  if (!senderWallet.connected) {
     throw new Error('Wallet not connected');
   }
 
-  // Check if we're on mobile
+  console.log('Starting SOL transfer:', {
+    from: senderWallet.publicKey.toString(),
+    to: paymentRequest.recipient.toString(),
+    amount: paymentRequest.amount.toString(),
+    connected: senderWallet.connected
+  });
+
+  // Check if we're on mobile - improved detection
   const isMobile = typeof window !== 'undefined' && 
     (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
      window.innerWidth <= 768);
+
+  console.log('Device detection:', {
+    isMobile,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
+    hasSendTransaction: !!senderWallet.sendTransaction,
+    hasSignTransaction: !!senderWallet.signTransaction
+  });
 
   try {
     // Create transfer transaction
@@ -405,10 +424,18 @@ export async function executeSOLTransfer(
       );
     }
 
-    // Get recent blockhash
-    const { blockhash } = await connection.getLatestBlockhash();
+    // Get recent blockhash with retry logic
+    console.log('Getting recent blockhash...');
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     transaction.recentBlockhash = blockhash;
+    transaction.lastValidBlockHeight = lastValidBlockHeight;
     transaction.feePayer = senderWallet.publicKey;
+
+    console.log('Transaction created:', {
+      feePayer: transaction.feePayer?.toString() || 'undefined',
+      recentBlockhash: transaction.recentBlockhash,
+      instructions: transaction.instructions.length
+    });
 
     let signature: string;
 
@@ -416,22 +443,57 @@ export async function executeSOLTransfer(
     if (isMobile && senderWallet.sendTransaction) {
       // Mobile: Use sendTransaction for better mobile wallet compatibility
       console.log('Mobile detected: Using sendTransaction');
-      signature = await senderWallet.sendTransaction(transaction, connection);
+      try {
+        signature = await senderWallet.sendTransaction(transaction, connection);
+        console.log('Mobile transaction sent, signature:', signature);
+      } catch (mobileError) {
+        console.error('Mobile sendTransaction failed:', mobileError);
+        // Fallback to desktop method if mobile fails
+        console.log('Falling back to desktop signing method');
+        if (senderWallet.signTransaction) {
+          const signed = await senderWallet.signTransaction(transaction);
+          signature = await connection.sendRawTransaction(signed.serialize());
+          console.log('Fallback transaction sent, signature:', signature);
+        } else {
+          throw mobileError;
+        }
+      }
     } else if (senderWallet.signTransaction) {
       // Desktop: Use traditional sign + send flow
       console.log('Desktop detected: Using signTransaction');
       const signed = await senderWallet.signTransaction(transaction);
       signature = await connection.sendRawTransaction(signed.serialize());
+      console.log('Desktop transaction sent, signature:', signature);
     } else {
       throw new Error('Wallet does not support transaction signing or sending');
     }
 
-    // Confirm transaction
-    await connection.confirmTransaction(signature, 'confirmed');
+    // Confirm transaction with better error handling
+    console.log('Confirming transaction:', signature);
+    const confirmation = await connection.confirmTransaction({
+      signature,
+      blockhash: transaction.recentBlockhash!,
+      lastValidBlockHeight: transaction.lastValidBlockHeight!
+    }, 'confirmed');
 
+    if (confirmation.value.err) {
+      console.error('Transaction confirmation failed:', confirmation.value.err);
+      throw new Error(`Transaction failed: ${confirmation.value.err}`);
+    }
+
+    console.log('Transaction confirmed successfully');
     return signature;
   } catch (error) {
     console.error('SOL transfer failed:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      isMobile,
+      hasSendTransaction: !!senderWallet.sendTransaction,
+      hasSignTransaction: !!senderWallet.signTransaction,
+      publicKey: senderWallet.publicKey?.toString()
+    });
     throw new Error(`Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
