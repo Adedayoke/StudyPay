@@ -492,6 +492,23 @@ export async function executeSOLTransfer(
     (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
      (window.innerWidth <= 768 && 'ontouchstart' in window));
 
+  // Additional mobile wallet connection checks
+  if (isMobile) {
+    console.log('Mobile device detected - performing connection checks...');
+
+    // Check if wallet has required methods for mobile
+    if (!senderWallet.sendTransaction && !senderWallet.signTransaction) {
+      throw new Error('Mobile wallet is not properly connected. Please ensure your wallet app is open and connected to this website.');
+    }
+
+    // Check if wallet is actually connected and ready
+    if (!senderWallet.connected) {
+      throw new Error('Mobile wallet is not connected. Please connect your wallet app and try again.');
+    }
+
+    console.log('Mobile wallet connection checks passed');
+  }
+
   // Improved mobile wallet adapter detection
   const isMobileWalletAdapter = isMobile && (
     senderWallet.name?.toLowerCase().includes('mobile') ||
@@ -695,7 +712,9 @@ export async function executeSOLTransfer(
       hasSendTransaction: !!senderWallet.sendTransaction,
       hasSignTransaction: !!senderWallet.signTransaction,
       publicKey: senderWallet.publicKey?.toString(),
-      walletName: senderWallet.name || 'Unknown'
+      walletName: senderWallet.name || 'Unknown',
+      walletConnected: senderWallet.connected,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
     });
 
     // Provide mobile-specific error messages
@@ -707,7 +726,7 @@ export async function executeSOLTransfer(
           throw new Error('Transaction was cancelled in your mobile wallet app. Please try again and approve the transaction.');
         } else if (errorMessage.includes('signature verification failed') || errorMessage.includes('missing signature')) {
           if (isMobile) {
-            throw new Error('Mobile wallet signature issue. Please ensure your wallet app is connected and has sufficient permissions. Try refreshing the page and reconnecting your wallet.');
+            throw new Error('Mobile wallet signature issue. Please ensure your wallet app is connected and has sufficient permissions. Try refreshing the page and reconnecting your wallet. If using Phantom mobile, make sure you\'re signed in and connected to the correct network.');
           } else {
             throw new Error('Transaction signature verification failed. Please try refreshing your wallet connection.');
           }
@@ -721,6 +740,18 @@ export async function executeSOLTransfer(
           }
         } else if (errorMessage.includes('wallet') && errorMessage.includes('not connected')) {
           throw new Error('Wallet connection lost. Please reconnect your wallet and try again.');
+        } else if (errorMessage.includes('disconnected') || errorMessage.includes('connection lost')) {
+          if (isMobile) {
+            throw new Error('Mobile wallet connection lost. Please ensure your wallet app remains open and connected throughout the transaction.');
+          } else {
+            throw new Error('Wallet connection lost. Please reconnect your wallet and try again.');
+          }
+        } else if (errorMessage.includes('user rejected') || errorMessage.includes('cancelled') || errorMessage.includes('rejected')) {
+          if (isMobile) {
+            throw new Error('Transaction was cancelled in your mobile wallet app. Please try again and approve the transaction when prompted.');
+          } else {
+            throw new Error('Transaction was cancelled. Please try again and approve the transaction.');
+          }
         } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('not enough')) {
           throw new Error('Insufficient SOL balance. Please add more SOL to your wallet and try again.');
         } else if (errorMessage.includes('blockhash') || errorMessage.includes('recent blockhash')) {
