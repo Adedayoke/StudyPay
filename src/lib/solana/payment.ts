@@ -730,7 +730,7 @@ export async function executeSOLTransfer(
 
   try {
     // Create transfer transaction with mobile optimizations
-    let transaction: Transaction = new Transaction().add(
+    const transaction: Transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: senderWallet.publicKey,
         toPubkey: paymentRequest.recipient,
