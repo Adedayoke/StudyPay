@@ -231,7 +231,7 @@ export function PaymentExecutor({
             <Alert type="warning" className="mt-2">
               Insufficient balance. You need {formatPaymentAmount(
                 balanceCheck.required.minus(balanceCheck.currentBalance)
-              )} more SOL.
+              )} more.
             </Alert>
           )}
         </div>

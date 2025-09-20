@@ -238,7 +238,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
           
           <div className="text-center">
             <div className="text-3xl font-bold text-yellow-500">
-              {formatCurrency(analytics.realTime.totalTodayVolume, 'SOL')}
+              ₦{solToNaira(analytics.realTime.totalTodayVolume).toFixed(0)}
             </div>
             <p className="text-sm text-dark-text-secondary">Today's Volume</p>
           </div>
@@ -287,10 +287,10 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
             <div>
               <p className="text-sm text-dark-text-secondary">Daily Volume</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(analytics.financial.dailyVolume, 'SOL')}
+                ₦{solToNaira(analytics.financial.dailyVolume).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">
-                ≈ ₦{solToNaira(analytics.financial.dailyVolume).toFixed(0)}
+                ≈ {formatCurrency(analytics.financial.dailyVolume, 'SOL')}
               </p>
             </div>
             <StudyPayIcon name="coins" className="h-7 w-7 text-solana-purple-500" />
@@ -302,7 +302,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
             <div>
               <p className="text-sm text-dark-text-secondary">Avg. Transaction</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(analytics.financial.averageTransactionSize, 'SOL')}
+                ₦{solToNaira(analytics.financial.averageTransactionSize).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">Per purchase</p>
             </div>
@@ -334,7 +334,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
               
               <div className="text-right">
                 <div className="font-semibold text-dark-text-primary">
-                  {formatCurrency(vendor.revenue, 'SOL')}
+                  ₦{solToNaira(vendor.revenue).toFixed(0)}
                 </div>
                 <div className="text-sm text-dark-text-secondary">
                   {vendor.transactions} transactions
@@ -432,7 +432,7 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
               <div className="text-2xl mb-2">{category.emoji}</div>
               <h3 className="font-medium text-dark-text-primary">{category.name}</h3>
               <p className="text-sm text-dark-text-secondary">
-                {formatCurrency(category.revenue, 'SOL')} revenue
+                ₦{solToNaira(category.revenue).toFixed(0)} revenue
               </p>
               <p className="text-xs text-dark-text-muted">
                 {category.transactions} transactions

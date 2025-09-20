@@ -182,22 +182,22 @@ export default function ParentDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
-                        {formatCurrency(new BigNumber(balance), "SOL")}
+                        {formatCurrency(solToNaira(new BigNumber(balance)), "NGN")}
                       </div>
                       <div className="text-sm text-gray-600">Wallet Balance</div>
                       <div className="text-xs text-gray-500">
                         ≈{" "}
-                        {formatCurrency(solToNaira(new BigNumber(balance)), "NGN")}
+                        {formatCurrency(new BigNumber(balance), "SOL")}
                       </div>
                     </div>
 
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {formatCurrency(totalSentThisMonth, "SOL")}
+                        {formatCurrency(solToNaira(totalSentThisMonth), "NGN")}
                       </div>
                       <div className="text-sm text-gray-600">Sent This Month</div>
                       <div className="text-xs text-gray-500">
-                        ≈ {formatCurrency(solToNaira(totalSentThisMonth), "NGN")}
+                        ≈ {formatCurrency(totalSentThisMonth, "SOL")}
                       </div>
                     </div>
 
@@ -260,14 +260,14 @@ export default function ParentDashboard() {
                           <div>
                             <span className="text-gray-600">Current Balance:</span>
                             <div className="font-semibold">
-                              {formatCurrency(student.currentBalance, "SOL")}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              ≈{" "}
                               {formatCurrency(
                                 solToNaira(student.currentBalance),
                                 "NGN"
                               )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              ≈{" "}
+                              {formatCurrency(student.currentBalance, "SOL")}
                             </div>
                           </div>
                           <div>
@@ -314,10 +314,10 @@ export default function ParentDashboard() {
 
                         <div className="text-right">
                           <div className="font-semibold text-blue-600">
-                            {formatCurrency(transfer.amount, "SOL")}
+                            {formatCurrency(solToNaira(transfer.amount), "NGN")}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ≈ {formatCurrency(solToNaira(transfer.amount), "NGN")}
+                            ≈ {formatCurrency(transfer.amount, "SOL")}
                           </div>
                           <Badge variant="success" className="text-xs mt-1">
                             {transfer.status}

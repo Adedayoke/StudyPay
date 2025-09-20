@@ -10,6 +10,7 @@ import { executePaymentFlow } from '@/lib/solana/payment';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { formatSOL } from '@/lib/utils/formatting';
 import TransactionStatus from '@/components/transactions/TransactionStatus';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 
 interface Student {
   id: string;
@@ -32,6 +33,11 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [purpose, setPurpose] = useState<string>('');
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
   const [isTransferring, setIsTransferring] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -148,7 +154,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
           signature: result.signature
         });
 
-        setSuccess(`Successfully sent ${formatSOL(new BigNumber(amount))} SOL to ${selectedStudent.name}!`);
+        setSuccess(`Successfully sent ₦${solToNaira(new BigNumber(amount)).toFixed(0)} to ${selectedStudent.name}!`);
         setAmount('');
         setPurpose('');
         setSelectedStudent(null);
@@ -190,7 +196,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
                   <div className="font-medium text-white">{student.name}</div>
                   <div className="text-sm text-gray-400">{student.university}</div>
                   <div className="text-xs text-gray-500">
-                    Balance: {formatSOL(student.currentBalance)} SOL
+                    Balance: ₦{solToNaira(student.currentBalance).toFixed(0)}
                   </div>
                 </div>
                 <div className="text-right">
@@ -305,7 +311,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Amount:</span>
-                <span className="text-white font-mono">{formatSOL(new BigNumber(amount))} SOL</span>
+                <span className="text-white font-mono">₦{solToNaira(new BigNumber(amount)).toFixed(0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Purpose:</span>

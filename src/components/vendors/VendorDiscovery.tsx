@@ -269,17 +269,10 @@ export default function VendorDiscovery({
                             <StudyPayIcon name="coins" className="inline h-4 w-4" />
                             <span>
                               ~
-                              {formatCurrency(
-                                vendor.pricing.averageOrderValue,
-                                "SOL"
-                              )}
+                              ₦{solToNaira(vendor.pricing.averageOrderValue).toFixed(0)}
                             </span>
                             <span className="text-dark-text-muted">
-                              (₦
-                              {solToNaira(
-                                vendor.pricing.averageOrderValue
-                              ).toFixed(0)}
-                              )
+                              (≈ {formatCurrency(vendor.pricing.averageOrderValue, "SOL")})
                             </span>
                           </div>
                         )}
@@ -326,7 +319,7 @@ export default function VendorDiscovery({
                       {vendor.pricing.acceptsCrypto && (
                         <div className="mt-2">
                           <Badge variant="primary" className="text-xs">
-                            <StudyPayIcon name="coins" className="inline h-4 w-4" /> SOL
+                            <StudyPayIcon name="coins" className="inline h-4 w-4" /> ₦
                           </Badge>
                         </div>
                       )}

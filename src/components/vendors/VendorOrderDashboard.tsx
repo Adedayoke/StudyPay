@@ -212,10 +212,10 @@ export default function VendorOrderDashboard({ vendorId }: VendorOrderDashboardP
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-dark-text-primary">
-                      {formatCurrency(order.total, 'SOL')}
+                      ₦{solToNaira(order.total).toFixed(0)}
                     </div>
                     <div className="text-xs text-dark-text-secondary">
-                      ≈ ₦{solToNaira(order.total).toFixed(0)}
+                      ≈ {formatCurrency(order.total, 'SOL')}
                     </div>
                   </div>
                 </div>

@@ -269,14 +269,14 @@ export default function StudentDashboard() {
                   </h3>
                   <div className="space-y-2">
                     <div className="text-3xl font-bold text-solana-purple-500">
-                      {formatCurrency(new BigNumber(balance), "SOL")}
-                    </div>
-                    <div className="text-lg text-gray-600">
-                      ≈{" "}
                       {formatCurrency(
                         solToNaira(new BigNumber(balance)),
                         "NGN"
                       )}
+                    </div>
+                    <div className="text-lg text-gray-600">
+                      ≈{" "}
+                      {formatCurrency(new BigNumber(balance), "SOL")}
                     </div>
                     <Button
                       onClick={refreshBalance}
@@ -406,7 +406,7 @@ export default function StudentDashboard() {
                       </div>
                       <div className="text-right">
                         <div className="font-mono text-white">
-                          {tx.amount.toString()} SOL
+                          ₦{solToNaira(new BigNumber(tx.amount)).toFixed(0)}
                         </div>
                         <div className="text-sm text-gray-400">{tx.status}</div>
                       </div>
@@ -536,10 +536,10 @@ export default function StudentDashboard() {
                           }`}
                         >
                           {tx.type === "incoming" ? "+" : "-"}
-                          {formatCurrency(tx.amount, "SOL")}
+                          ₦{solToNaira(tx.amount).toFixed(0)}
                         </div>
                         <div className="text-xs text-dark-text-secondary">
-                          ≈ ₦{solToNaira(tx.amount).toFixed(0)}
+                          ≈ {formatCurrency(tx.amount, "SOL")}
                         </div>
                         <Badge
                           variant={
@@ -620,14 +620,14 @@ export default function StudentDashboard() {
                   </div>
                   <div className="font-semibold text-dark-text-primary">
                     {categorySpending[category.key]
-                      ? formatCurrency(categorySpending[category.key], "SOL")
-                      : "0.000 SOL"}
+                      ? `₦${solToNaira(categorySpending[category.key]).toFixed(0)}`
+                      : "₦0"}
                   </div>
                   <div className="text-xs text-dark-text-secondary mt-1">
-                    ≈ ₦
+                    ≈{" "}
                     {categorySpending[category.key]
-                      ? solToNaira(categorySpending[category.key]).toFixed(0)
-                      : "0"}
+                      ? formatCurrency(categorySpending[category.key], "SOL")
+                      : "0.000 SOL"}
                   </div>
                 </Card>
               ));

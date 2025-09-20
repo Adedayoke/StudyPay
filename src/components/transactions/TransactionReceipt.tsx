@@ -4,6 +4,8 @@ import React from 'react';
 import { Transaction } from '@/lib/types/payment';
 import { formatSOL } from '@/lib/utils/formatting';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
+import BigNumber from 'bignumber.js';
 
 interface TransactionReceiptProps {
   transaction: Transaction;
@@ -16,6 +18,10 @@ export default function TransactionReceipt({
   onClose, 
   onViewOnExplorer 
 }: TransactionReceiptProps) {
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
   const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
       case 'confirmed':
@@ -89,7 +95,7 @@ export default function TransactionReceipt({
           <div className="flex justify-between">
             <span className="text-gray-400">Amount</span>
             <span className="text-white font-mono">
-              {formatSOL(transaction.amount)} SOL
+              ₦{solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
             </span>
           </div>
 
@@ -147,7 +153,7 @@ export default function TransactionReceipt({
             <div className="flex justify-between">
               <span className="text-gray-400">Network Fee</span>
               <span className="text-white font-mono">
-                {formatSOL(transaction.fees)} SOL
+                ₦{solToNaira(new BigNumber(transaction.fees)).toFixed(0)}
               </span>
             </div>
           )}
@@ -170,7 +176,7 @@ export default function TransactionReceipt({
               const receiptData = `
 StudyPay Payment Receipt
 ========================
-Amount: ${formatSOL(transaction.amount)} SOL
+Amount: ₦${solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
 From: ${transaction.fromAddress}
 To: ${transaction.toAddress}
 Status: ${getStatusText(transaction.status)}

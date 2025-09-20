@@ -156,21 +156,24 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
               {cart.items.map((item) => (
                 <div key={item.productId} className="flex justify-between text-sm">
                   <span>{item.name} × {item.quantity}</span>
-                  <span>{formatCurrency(item.price.multipliedBy(item.quantity), 'SOL')}</span>
+                  <span>₦{solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}</span>
                 </div>
               ))}
               <hr className="border-dark-border-secondary" />
               <div className="flex justify-between font-medium">
                 <span>Subtotal</span>
-                <span>{formatCurrency(cart.subtotal, 'SOL')}</span>
+                <span>₦{solToNaira(cart.subtotal).toFixed(0)}</span>
               </div>
               <div className="flex justify-between text-sm text-dark-text-secondary">
                 <span>Service Fee (2%)</span>
-                <span>{formatCurrency(cart.subtotal.multipliedBy(0.02), 'SOL')}</span>
+                <span>₦{solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{formatCurrency(cart.total, 'SOL')}</span>
+                <span>₦{solToNaira(cart.total).toFixed(0)}</span>
+              </div>
+              <div className="text-xs text-dark-text-secondary text-right mt-1">
+                ≈ {formatCurrency(cart.total, 'SOL')}
               </div>
             </div>
           </div>
@@ -257,10 +260,10 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
             </div>
             <div className="text-right">
               <div className="font-semibold text-dark-text-primary">
-                {formatCurrency(item.price.multipliedBy(item.quantity), 'SOL')}
+                ₦{solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}
               </div>
               <div className="text-xs text-dark-text-secondary">
-                {formatCurrency(item.price, 'SOL')} each
+                ₦{solToNaira(item.price).toFixed(0)} each
               </div>
             </div>
           </div>
@@ -272,19 +275,19 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Subtotal ({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-              <span>{formatCurrency(cart.subtotal, 'SOL')}</span>
+              <span>₦{solToNaira(cart.subtotal).toFixed(0)}</span>
             </div>
             <div className="flex justify-between text-sm text-dark-text-secondary">
               <span>Service Fee (2%)</span>
-              <span>{formatCurrency(cart.subtotal.multipliedBy(0.02), 'SOL')}</span>
+              <span>₦{solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
             </div>
             <hr className="border-dark-border-secondary" />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span>{formatCurrency(cart.total, 'SOL')}</span>
+              <span>₦{solToNaira(cart.total).toFixed(0)}</span>
             </div>
             <div className="text-xs text-dark-text-secondary text-center">
-              ≈ ₦{solToNaira(cart.total).toFixed(0)} NGN
+              ≈ {formatCurrency(cart.total, 'SOL')}
             </div>
           </div>
         </div>
@@ -297,7 +300,7 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
           size="lg"
           disabled={!connected || cart.items.length === 0}
         >
-          {!connected ? 'Connect Wallet to Checkout' : `Pay ${formatCurrency(cart.total, 'SOL')}`}
+          {!connected ? 'Connect Wallet to Checkout' : `Pay ₦${solToNaira(cart.total).toFixed(0)}`}
         </Button>
 
         {cart.vendorId && (

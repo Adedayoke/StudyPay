@@ -16,11 +16,14 @@ import {
   createSolanaPayURL,
   parseSolanaPayURL,
   formatPaymentAmount,
+  formatNairaAmount,
   isValidPaymentAmount,
+  isValidNairaAmount,
   SolanaPayRequest,
   CampusPaymentType,
   CAMPUS_MERCHANTS
 } from '@/lib/solana/payment';
+import { nairaToSolSync } from '@/lib/solana/utils';
 
 // =============================================================================
 // Official Solana Pay QR Generator
@@ -54,8 +57,8 @@ export function SolanaPayQRGenerator({
     }
 
     const amountBN = new BigNumber(amount);
-    if (!isValidPaymentAmount(amountBN)) {
-      setError('Invalid amount. Must be between 0 and 1000 SOL');
+    if (!isValidNairaAmount(amountBN)) {
+      setError('Invalid amount. Must be between ₦0 and ₦50,000,000');
       return;
     }
 
@@ -71,9 +74,11 @@ export function SolanaPayQRGenerator({
       console.log('Using vendor wallet:', recipientWallet);
       console.log('Vendor connected wallet:', vendorWallet || 'None - using fallback');
       
+      const solAmount = nairaToSolSync(amountBN); // Convert Naira to SOL
+      
       const solanaPayRequest: SolanaPayRequest = {
         recipient: new PublicKey(recipientWallet),
-        amount: amountBN,
+        amount: solAmount,
         label: `StudyPay - ${description}`,
         message: `Payment for ${description}`,
         memo: `StudyPay: ${description}`,
@@ -198,7 +203,7 @@ export function SolanaPayQRGenerator({
           <div className="text-sm text-dark-text-secondary">
             <p className="font-medium text-dark-text-primary">{description}</p>
             <p className="text-solana-purple-500 font-semibold">
-              {formatPaymentAmount(new BigNumber(amount))}
+              {formatNairaAmount(new BigNumber(amount))}
             </p>
             <p className="text-xs text-dark-text-muted mt-1">
               🔒 Official Solana Pay Protocol

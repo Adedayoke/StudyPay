@@ -168,10 +168,10 @@ export default function StudentInsightsDashboard({
             <div>
               <p className="text-sm text-dark-text-secondary">Total Spent</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(insights.spendingAnalytics.totalSpent, 'SOL')}
+                ₦{solToNaira(insights.spendingAnalytics.totalSpent).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">
-                ≈ ₦{solToNaira(insights.spendingAnalytics.totalSpent).toFixed(0)}
+                ≈ {formatCurrency(insights.spendingAnalytics.totalSpent, 'SOL')}
               </p>
             </div>
             <StudyPayIcon name="coins" className="h-7 w-7 text-solana-purple-500" />
@@ -183,7 +183,7 @@ export default function StudentInsightsDashboard({
             <div>
               <p className="text-sm text-dark-text-secondary">Avg. per Day</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(insights.spendingAnalytics.averagePerDay, 'SOL')}
+                ₦{solToNaira(insights.spendingAnalytics.averagePerDay).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">Daily average</p>
             </div>
@@ -275,7 +275,10 @@ export default function StudentInsightsDashboard({
               
               <div className="text-right">
                 <div className="font-semibold text-dark-text-primary">
-                  {formatCurrency(category.amount, 'SOL')}
+                  ₦{solToNaira(category.amount).toFixed(0)}
+                </div>
+                <div className="text-xs text-dark-text-secondary">
+                  ≈ {formatCurrency(category.amount, 'SOL')}
                 </div>
                 <div className="text-sm text-dark-text-secondary">
                   {category.percentage.toFixed(1)}%
@@ -378,7 +381,7 @@ export default function StudentInsightsDashboard({
                       <div className="text-sm text-green-500">
                         <span className="flex items-center gap-1">
                           <StudyPayIcon name="money" size={14} />
-                          Potential savings: {formatCurrency(rec.potentialSavings, 'SOL')}
+                          Potential savings: ₦{solToNaira(rec.potentialSavings).toFixed(0)}
                         </span>
                       </div>
                     )}
@@ -435,7 +438,7 @@ export default function StudentInsightsDashboard({
                   
                   <div className="text-right">
                     <div className="font-semibold text-dark-text-primary">
-                      {formatCurrency(fav.totalSpent, 'SOL')}
+                      ₦{solToNaira(fav.totalSpent).toFixed(0)}
                     </div>
                     <div className="text-sm text-dark-text-secondary">
                       {fav.visitCount} visits

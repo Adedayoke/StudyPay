@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge } from '@/components/ui';
 import { vendorRegistry, VendorProfile, VendorSearchFilters } from '@/lib/vendors/vendorRegistry';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { formatCurrency, solToNairaSync } from '@/lib/solana/utils';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 import Logo from '@/components/ui/Logo';
@@ -263,7 +263,7 @@ export default function MarketplacePage() {
                     <div>
                       <div className="text-gray-400">Avg. Order</div>
                       <div className="text-white font-medium">
-                        {formatCurrency(vendor.pricing.averageOrderValue || new BigNumber(0), 'SOL')}
+                        ₦{solToNairaSync(vendor.pricing.averageOrderValue || new BigNumber(0)).toFixed(0)}
                       </div>
                     </div>
                   </div>

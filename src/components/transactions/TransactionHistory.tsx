@@ -5,6 +5,8 @@ import { Transaction } from '@/lib/types/payment';
 import { formatSOL } from '@/lib/utils/formatting';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import TransactionReceipt from './TransactionReceipt';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
+import BigNumber from 'bignumber.js';
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
@@ -18,6 +20,11 @@ export default function TransactionHistory({
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [filter, setFilter] = useState<'all' | 'sent' | 'received' | 'pending'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
 
   const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
@@ -145,7 +152,7 @@ export default function TransactionHistory({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-medium">
-                          {formatSOL(transaction.amount)} SOL
+                          ₦{solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
                         </span>
                         <span className={`text-sm ${getStatusColor(transaction.status)}`}>
                           {transaction.status}
@@ -196,13 +203,13 @@ export default function TransactionHistory({
               
               <div className="bg-[#2D2D2D] rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-[#9945FF]">
-                  {formatSOL(
+                  ₦{solToNaira(
                     sortedTransactions
                       .filter(tx => tx.status === 'confirmed' || tx.status === 'finalized')
-                      .reduce((sum, tx) => sum.plus(tx.amount), new (require('bignumber.js'))(0))
-                  )}
+                      .reduce((sum, tx) => sum.plus(tx.amount), new BigNumber(0))
+                  ).toFixed(0)}
                 </div>
-                <div className="text-sm text-gray-400">Total SOL</div>
+                <div className="text-sm text-gray-400">Total Amount</div>
               </div>
             </div>
           </div>

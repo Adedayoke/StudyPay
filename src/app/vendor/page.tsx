@@ -128,11 +128,11 @@ export default function VendorDashboard() {
                     Wallet Balance
                   </div>
                   <div className="text-2xl font-bold text-green-500">
-                    {formatCurrency(new BigNumber(balance), "SOL")}
+                    {formatCurrency(solToNaira(new BigNumber(balance)), "NGN")}
                   </div>
                   <div className="text-sm text-dark-text-muted">
                     ≈{" "}
-                    {formatCurrency(solToNaira(new BigNumber(balance)), "NGN")}
+                    {formatCurrency(new BigNumber(balance), "SOL")}
                   </div>
                 </div>
               </div>
@@ -239,10 +239,13 @@ export default function VendorDashboard() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-500">
-                    {formatCurrency(totalToday, "SOL")}
+                    {formatCurrency(solToNaira(totalToday), "NGN")}
                   </div>
                   <div className="text-sm text-dark-text-secondary">
                     Total Earned
+                  </div>
+                  <div className="text-xs text-dark-text-muted">
+                    ≈ {formatCurrency(totalToday, "SOL")}
                   </div>
                 </div>
               </div>
@@ -324,10 +327,10 @@ export default function VendorDashboard() {
 
                 <div className="text-right">
                   <div className="font-semibold text-green-500">
-                    +{formatCurrency(payment.amount, "SOL")}
+                    +{formatCurrency(solToNaira(payment.amount), "NGN")}
                   </div>
                   <div className="text-xs text-dark-text-muted">
-                    {formatCurrency(solToNaira(payment.amount), "NGN")}
+                    ≈ {formatCurrency(payment.amount, "SOL")}
                   </div>
                 </div>
               </div>

@@ -19,6 +19,7 @@ import {
 } from '@solana/pay';
 import BigNumber from 'bignumber.js';
 import QRCode from 'qrcode';
+import { solToNairaSync } from './utils';
 
 // Backup QR generation using reliable qrcode library
 function generateReliableQR(text: string, size: number = 400): Promise<string> {
@@ -279,8 +280,18 @@ export function validateSolanaPayURL(url: string): boolean {
 /**
  * Convert SOL amount to lamports
  */
-export function solToLamports(solAmount: BigNumber): number {
-  return solAmount.multipliedBy(LAMPORTS_PER_SOL).toNumber();
+export function solToLamports(solAmount: BigNumber): bigint {
+  if (solAmount.isNaN() || solAmount.isLessThanOrEqualTo(0)) {
+    throw new Error('Invalid SOL amount for conversion');
+  }
+
+  const lamports = solAmount.multipliedBy(LAMPORTS_PER_SOL);
+
+  if (lamports.isNaN() || lamports.isLessThan(1)) {
+    throw new Error('SOL amount too small to convert to lamports');
+  }
+
+  return BigInt(lamports.toFixed(0));
 }
 
 /**
@@ -333,17 +344,31 @@ export function estimateTransactionFee(): BigNumber {
 }
 
 /**
- * Format payment amount for display
+ * Format payment amount for display (shows SOL amounts)
  */
 export function formatPaymentAmount(amount: BigNumber): string {
   return `${amount.toFixed(6)} SOL`;
 }
 
 /**
- * Check if amount is valid for payment
+ * Format Naira amount for display
+ */
+export function formatNairaAmount(amount: BigNumber): string {
+  return `₦${solToNairaSync(amount).toFixed(0)}`;
+}
+
+/**
+ * Check if amount is valid for payment (validates SOL amounts)
  */
 export function isValidPaymentAmount(amount: BigNumber): boolean {
   return amount.isGreaterThan(0) && amount.isLessThanOrEqualTo(1000); // Max 1000 SOL
+}
+
+/**
+ * Check if Naira amount is valid for payment
+ */
+export function isValidNairaAmount(amount: BigNumber): boolean {
+  return amount.isGreaterThan(0) && amount.isLessThanOrEqualTo(50000000); // Max 50M Naira
 }
 
 /**

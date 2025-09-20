@@ -16,6 +16,7 @@ import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
 import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
 import { createVendorPaymentRequest } from '@/lib/solana/payment';
+import { formatCurrency, nairaToSolSync } from '@/lib/solana/utils';
 
 interface VendorProfileViewProps {
   vendor: VendorProfile;
@@ -86,13 +87,16 @@ export default function VendorProfileView({
   };
 
   const handleCustomPayment = () => {
-    const amount = new BigNumber(customAmount);
-    if (amount.isNaN() || amount.lte(0)) {
+    const nairaAmount = new BigNumber(customAmount);
+    if (nairaAmount.isNaN() || nairaAmount.lte(0)) {
       alert('Please enter a valid amount');
       return;
     }
 
-    setSelectedAmount(amount);
+    // Convert Naira input back to SOL for payment processing
+    const solAmount = nairaToSolSync(nairaAmount);
+
+    setSelectedAmount(solAmount);
     setPaymentMemo(paymentMemo || `Payment to ${vendor.businessName}`);
     setShowPaymentExecutor(true);
   };
@@ -216,7 +220,10 @@ export default function VendorProfileView({
                     
                     <div className="text-right ml-4">
                       <div className="font-semibold text-dark-text-primary">
-                        {formatCurrency(product.price, 'SOL')}
+                        ₦{solToNaira(product.price).toFixed(0)}
+                      </div>
+                      <div className="text-xs text-dark-text-secondary">
+                        ≈ {formatCurrency(product.price, 'SOL')}
                       </div>
                       <div className="text-xs text-dark-text-secondary">
                         ≈ ₦{solToNaira(product.price).toFixed(0)}
@@ -258,7 +265,7 @@ export default function VendorProfileView({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-dark-text-primary mb-2">
-              Amount (SOL)
+              Amount (₦)
             </label>
             <input
               type="number"
@@ -267,11 +274,11 @@ export default function VendorProfileView({
               value={customAmount}
               onChange={(e) => setCustomAmount(e.target.value)}
               className="w-full px-3 py-2 bg-dark-bg-tertiary border border-dark-border-secondary rounded-md text-dark-text-primary placeholder-dark-text-muted focus:ring-2 focus:ring-solana-purple-500 focus:border-transparent"
-              placeholder="0.025"
+              placeholder="500"
             />
             {customAmount && !isNaN(Number(customAmount)) && Number(customAmount) > 0 && (
               <div className="text-xs text-dark-text-secondary mt-1">
-                ≈ ₦{solToNaira(new BigNumber(customAmount)).toFixed(0)}
+                ₦{new BigNumber(customAmount).toFixed(0)} ≈ {formatCurrency(nairaToSolSync(new BigNumber(customAmount)), 'SOL')}
               </div>
             )}
           </div>
@@ -369,7 +376,7 @@ export default function VendorProfileView({
                 Stats
               </h3>
               <div className="text-sm text-dark-text-secondary space-y-1">
-                <div>Total Sales: {formatCurrency(vendor.stats.totalSales, 'SOL')}</div>
+                <div>Total Sales: ₦{solToNaira(vendor.stats.totalSales).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(vendor.stats.totalSales, 'SOL')})</span></div>
                 <div>Total Orders: {vendor.stats.totalTransactions}</div>
                 <div>Member Since: {vendor.stats.joinDate.toLocaleDateString()}</div>
                 <div>Last Active: {vendor.stats.lastActiveDate.toLocaleDateString()}</div>
@@ -407,7 +414,7 @@ export default function VendorProfileView({
                 Confirm Payment
               </h3>
               <div className="text-sm text-dark-text-secondary">
-                <div>Amount: {formatCurrency(selectedAmount, 'SOL')}</div>
+                <div>Amount: ₦{solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(selectedAmount, 'SOL')})</span></div>
                 <div>To: {vendor.businessName}</div>
                 <div>Description: {paymentMemo}</div>
               </div>

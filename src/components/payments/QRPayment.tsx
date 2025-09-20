@@ -14,11 +14,14 @@ import {
   createVendorPaymentRequest, 
   createSolanaPayURL,
   formatPaymentAmount,
+  formatNairaAmount,
   isValidPaymentAmount,
+  isValidNairaAmount,
   SolanaPayRequest,
   parseSolanaPayURL,
   getMockVendorAddress
 } from '@/lib/solana/payment';
+import { nairaToSolSync } from '@/lib/solana/utils';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { PaymentExecutor, PaymentSuccess } from '@/components/payments/PaymentExecutor';
 
@@ -65,8 +68,8 @@ export function QRPaymentGenerator({
     }
 
     const amountBN = new BigNumber(amount);
-    if (!isValidPaymentAmount(amountBN)) {
-      setError('Invalid amount. Must be between 0 and 1000 SOL');
+    if (!isValidNairaAmount(amountBN)) {
+      setError('Invalid amount. Must be between ₦0 and ₦50,000,000');
       return;
     }
 
@@ -77,9 +80,10 @@ export function QRPaymentGenerator({
       // Create real Solana Pay request using mock vendor address
       // In production, this would be the actual vendor's wallet address
       const vendorAddress = getMockVendorAddress();
+      const solAmount = nairaToSolSync(amountBN); // Convert Naira to SOL
       const paymentRequest = createVendorPaymentRequest(
         vendorAddress,
-        amountBN,
+        solAmount,
         description
       );
 
@@ -95,7 +99,7 @@ export function QRPaymentGenerator({
             SOLANA PAY
           </text>
           <text x="128" y="120" text-anchor="middle" font-size="10" fill="#333">
-            ${formatPaymentAmount(amountBN)}
+            ${formatNairaAmount(amountBN)}
           </text>
           <text x="128" y="140" text-anchor="middle" font-size="8" fill="#666">
             ${description}
@@ -155,7 +159,7 @@ export function QRPaymentGenerator({
       {!qrCodeDataURL ? (
         <div className="space-y-4">
           <Input
-            label="Amount (SOL)"
+            label="Amount (₦)"
             type="number"
             step="0.001"
             min="0"
@@ -196,7 +200,7 @@ export function QRPaymentGenerator({
           <div className="text-sm text-dark-text-secondary">
             <p className="font-medium text-dark-text-primary">{description}</p>
             <p className="text-solana-purple-500 font-semibold">
-              {formatPaymentAmount(new BigNumber(amount))}
+              {formatNairaAmount(new BigNumber(amount))}
             </p>
             <p className="text-xs text-dark-text-muted mt-1">
               Scan with any Solana Pay compatible wallet
@@ -429,7 +433,7 @@ export function PaymentConfirmation({
           <div>
             <span className="text-dark-text-secondary">Amount:</span>
             <div className="font-semibold text-lg text-solana-purple-500">
-              {formatPaymentAmount(paymentDetails.amount)}
+              {formatNairaAmount(paymentDetails.amount)}
             </div>
           </div>
           

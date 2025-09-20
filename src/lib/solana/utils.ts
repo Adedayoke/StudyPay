@@ -88,8 +88,9 @@ export async function createSolTransfer(
   amount: BigNumber
 ): Promise<Transaction> {
   try {
-    const lamports = solToLamports(amount).toNumber();
-    
+    const lamportsBigNum = solToLamports(amount);
+    const lamports = BigInt(lamportsBigNum.toFixed(0));
+
     const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: fromPublicKey,
@@ -359,12 +360,20 @@ export async function nairaToSol(nairaAmount: BigNumber): Promise<BigNumber> {
 export function nairaToSolSync(nairaAmount: BigNumber): BigNumber {
   const priceService = PriceService.getInstance();
 
+  let solAmount: BigNumber;
   if (priceService.isCacheValid() && priceService['priceData']) {
-    return nairaAmount.dividedBy(priceService['priceData'].solToNgn);
+    solAmount = nairaAmount.dividedBy(priceService['priceData'].solToNgn);
+  } else {
+    // Fallback to mock rate if no cached data
+    solAmount = nairaAmount.dividedBy(50000);
   }
 
-  // Fallback to mock rate if no cached data
-  return nairaAmount.dividedBy(50000);
+  // Ensure minimum SOL amount and round to 9 decimal places
+  if (solAmount.isLessThan(0.000001)) {
+    throw new Error('Amount too small to convert to SOL');
+  }
+
+  return solAmount.decimalPlaces(9, BigNumber.ROUND_DOWN);
 }
 
 /**

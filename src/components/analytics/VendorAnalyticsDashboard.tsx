@@ -182,11 +182,11 @@ export default function VendorAnalyticsDashboard({
         {realTimeData && (
           <div className="mt-3 p-3 bg-dark-bg-tertiary rounded-lg">
             <div className="text-sm text-green-400">
-              <StudyPayIcon name="info" className="inline h-4 w-4" /> New transaction: {formatCurrency(realTimeData.newTransaction.amount, 'SOL')} 
+              <StudyPayIcon name="info" className="inline h-4 w-4" /> New transaction: ₦{solToNaira(realTimeData.newTransaction.amount).toFixed(0)} 
               for {realTimeData.newTransaction.item}
             </div>
             <div className="text-xs text-dark-text-muted mt-1">
-              {realTimeData.currentActivity} customers currently active
+              ≈ {formatCurrency(realTimeData.newTransaction.amount, 'SOL')} • {realTimeData.currentActivity} customers currently active
             </div>
           </div>
         )}
@@ -199,10 +199,10 @@ export default function VendorAnalyticsDashboard({
             <div>
               <p className="text-sm text-dark-text-secondary">Total Sales</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(analytics.metrics.totalSales, 'SOL')}
+                ₦{solToNaira(analytics.metrics.totalSales).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">
-                ≈ ₦{solToNaira(analytics.metrics.totalSales).toFixed(0)}
+                ≈ {formatCurrency(analytics.metrics.totalSales, 'SOL')}
               </p>
             </div>
             <div className="text-right">
@@ -234,7 +234,7 @@ export default function VendorAnalyticsDashboard({
             <div>
               <p className="text-sm text-dark-text-secondary">Avg. Order</p>
               <p className="text-2xl font-bold text-dark-text-primary">
-                {formatCurrency(analytics.metrics.averageOrderValue, 'SOL')}
+                ₦{solToNaira(analytics.metrics.averageOrderValue).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">
                 per transaction
@@ -274,7 +274,7 @@ export default function VendorAnalyticsDashboard({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-solana-purple-500">
-              {formatCurrency(analytics.realTimeData.currentHourSales, 'SOL')}
+              ₦{solToNaira(analytics.realTimeData.currentHourSales).toFixed(0)}
             </div>
             <p className="text-sm text-dark-text-secondary">This Hour Sales</p>
           </div>
@@ -364,7 +364,7 @@ export default function VendorAnalyticsDashboard({
                       {item.count} sold
                     </div>
                     <div className="text-xs text-dark-text-secondary">
-                      {formatCurrency(item.revenue, 'SOL')}
+                      ₦{solToNaira(item.revenue).toFixed(0)}
                     </div>
                   </div>
                 </div>
@@ -439,7 +439,7 @@ export default function VendorAnalyticsDashboard({
                 </div>
                 
                 <div className="w-16 text-sm text-dark-text-secondary text-right">
-                  {formatCurrency(hour.sales, 'SOL')}
+                  ₦{solToNaira(hour.sales).toFixed(0)}
                 </div>
               </div>
             ))}
