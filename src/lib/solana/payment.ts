@@ -15,7 +15,8 @@ import {
   encodeURL, 
   createQR, 
   parseURL,
-  validateTransfer
+  validateTransfer,
+  createTransfer
 } from '@solana/pay';
 import BigNumber from 'bignumber.js';
 import QRCode from 'qrcode';
@@ -73,6 +74,49 @@ export function createSolanaPayURL(request: SolanaPayRequest): URL {
     memo,
     reference,
   });
+}
+
+/**
+ * Create Solana Pay Transfer Request URL for Direct Payments
+ * This creates a direct payment URL that can be opened immediately in wallets
+ * Perfect for parent-to-student transfers and student direct payments
+ */
+export function createSolanaPayTransfer(
+  recipient: PublicKey,
+  amount: BigNumber,
+  label: string,
+  options?: {
+    message?: string;
+    memo?: string;
+    reference?: PublicKey;
+  }
+): URL {
+  return encodeURL({
+    recipient,
+    amount,
+    label,
+    ...(options?.message && { message: options.message }),
+    ...(options?.memo && { memo: options.memo }),
+    ...(options?.reference && { reference: options.reference }),
+  });
+}
+
+/**
+ * Create Direct Payment URL String
+ * Convenience function that returns the payment URL as a string
+ */
+export function createDirectPaymentURL(
+  recipient: PublicKey,
+  amount: BigNumber,
+  label: string,
+  options?: {
+    message?: string;
+    memo?: string;
+    reference?: PublicKey;
+  }
+): string {
+  const paymentURL = createSolanaPayTransfer(recipient, amount, label, options);
+  return paymentURL.toString();
 }
 
 /**
