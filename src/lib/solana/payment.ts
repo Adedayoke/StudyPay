@@ -499,15 +499,22 @@ async function testMobileWalletConnectivity(wallet: any, connection: Connection)
     diagnostics.canSign = typeof wallet.signTransaction === 'function';
     diagnostics.canSend = typeof wallet.sendTransaction === 'function';
 
-    // Identify wallet type with enhanced detection
+    // Enhanced Phantom Mobile detection
     if (wallet.name) {
       const walletName = wallet.name.toLowerCase();
       diagnostics.walletType = wallet.name; // Keep original name
 
-      // Enhanced wallet type detection
-      if (walletName.includes('phantom')) {
+      // Specific Phantom Mobile detection
+      if (walletName.includes('phantom') ||
+          walletName.includes('phantom mobile') ||
+          walletName === 'phantom' ||
+          walletName.includes('app.phantom') ||
+          (walletName.includes('mobile') && walletName.includes('phantom'))) {
         diagnostics.walletType = 'Phantom Mobile';
-        diagnostics.recommendations.push('Phantom detected - ensure you\'re signed into the correct account');
+        diagnostics.recommendations.push('Phantom Mobile detected - this is the recommended wallet!');
+        diagnostics.recommendations.push('Ensure you\'re signed into Phantom with the correct account');
+        diagnostics.recommendations.push('Make sure Phantom app is updated to the latest version');
+      } else if (walletName.includes('solflare') || walletName.includes('solflare')) {
       } else if (walletName.includes('solflare') || walletName.includes('solflare')) {
         diagnostics.walletType = 'Solflare Mobile';
         diagnostics.recommendations.push('Solflare detected - try switching to Phantom for better mobile compatibility');
@@ -542,18 +549,25 @@ async function testMobileWalletConnectivity(wallet: any, connection: Connection)
       // Try to identify wallet from user agent or other properties
       if (typeof navigator !== 'undefined') {
         const ua = navigator.userAgent.toLowerCase();
-        if (ua.includes('phantom')) {
+        if (ua.includes('phantom') || ua.includes('app.phantom')) {
           diagnostics.walletType = 'Phantom Mobile (detected from UA)';
-          diagnostics.recommendations.unshift('Phantom Mobile detected - ensure you\'re signed in');
+          diagnostics.recommendations.unshift('Phantom Mobile detected from browser - excellent choice!');
+          diagnostics.recommendations.push('Phantom is the most compatible mobile wallet for Solana');
         } else if (ua.includes('solflare')) {
           diagnostics.walletType = 'Solflare Mobile (detected from UA)';
-          diagnostics.recommendations.unshift('Solflare detected - try switching to Phantom');
+          diagnostics.recommendations.unshift('Solflare detected - try switching to Phantom for better compatibility');
         }
       }
 
       // Check wallet adapter properties
       if (wallet.adapter) {
-        diagnostics.walletType = `Adapter: ${wallet.adapter.name || 'Unknown'}`;
+        const adapterName = wallet.adapter.name?.toLowerCase() || '';
+        if (adapterName.includes('phantom')) {
+          diagnostics.walletType = 'Phantom Mobile (Adapter)';
+          diagnostics.recommendations.unshift('Phantom adapter detected - should work perfectly!');
+        } else {
+          diagnostics.walletType = `Adapter: ${wallet.adapter.name || 'Unknown'}`;
+        }
       }
 
       // Check for mobile-specific properties
