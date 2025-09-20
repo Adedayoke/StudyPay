@@ -480,12 +480,19 @@ export async function executeSOLTransfer(
     (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
      (window.innerWidth <= 768 && 'ontouchstart' in window));
 
+  // Detect wallet adapter type
+  const isMobileWalletAdapter = senderWallet.name?.toLowerCase().includes('mobile') ||
+                                senderWallet.name?.toLowerCase().includes('adapter') ||
+                                !senderWallet.sendTransaction; // Mobile adapters often don't have sendTransaction
+
   console.log('Device detection:', {
     isMobile,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
     hasSendTransaction: !!senderWallet.sendTransaction,
-    hasSignTransaction: !!senderWallet.signTransaction
+    hasSignTransaction: !!senderWallet.signTransaction,
+    walletName: senderWallet.name || 'Unknown',
+    isMobileWalletAdapter
   });
 
   try {
@@ -539,73 +546,19 @@ export async function executeSOLTransfer(
         throw new Error('Transaction is missing required fields (feePayer or recentBlockhash)');
       }
 
-      // Try sendTransaction first (works with mobile wallet apps)
-      if (senderWallet.sendTransaction) {
-        console.log('Attempting mobile sendTransaction...');
-        try {
-          signature = await senderWallet.sendTransaction(transaction, connection, {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed'
-          });
-          console.log('Mobile sendTransaction successful:', signature);
+      // Handle mobile wallet adapters differently
+      if (isMobileWalletAdapter) {
+        console.log('Detected mobile wallet adapter - using signTransaction only flow');
 
-          // Validate signature immediately after signing
-          if (!signature || signature.length === 0) {
-            throw new Error('Mobile wallet returned empty signature');
-          }
-
-        } catch (mobileError) {
-          console.error('Mobile sendTransaction failed:', mobileError);
-          console.log('Falling back to signTransaction flow...');
-
-          // Fallback: Try signTransaction + sendRawTransaction
-          if (senderWallet.signTransaction) {
-            try {
-              console.log('Attempting signTransaction fallback...');
-              const signedTransaction = await senderWallet.signTransaction(transaction);
-
-              // Validate that transaction is properly signed
-              if (!signedTransaction || !signedTransaction.signatures || signedTransaction.signatures.length === 0) {
-                throw new Error('Transaction was not properly signed by wallet');
-              }
-
-              // Check if our public key has a signature
-              const ourSignature = signedTransaction.signatures.find((sig: any) =>
-                sig.publicKey.equals(senderWallet.publicKey)
-              );
-
-              if (!ourSignature || !ourSignature.signature) {
-                throw new Error('Missing signature for sender public key');
-              }
-
-              console.log('Transaction signed successfully, sending to network...');
-
-              // Validate the signed transaction before sending
-              validateTransactionBeforeSubmission(signedTransaction, senderWallet.publicKey, true);
-
-              signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-                skipPreflight: false,
-                preflightCommitment: 'confirmed'
-              });
-              console.log('Fallback transaction successful:', signature);
-
-            } catch (fallbackError) {
-              console.error('Fallback method also failed:', fallbackError);
-              throw new Error(`Mobile transaction failed: ${mobileError instanceof Error ? mobileError.message : 'Unknown error'}`);
-            }
-          } else {
-            throw new Error('Mobile wallet does not support transaction signing');
-          }
+        if (!senderWallet.signTransaction) {
+          throw new Error('Mobile wallet adapter does not support transaction signing');
         }
-      } else if (senderWallet.signTransaction) {
-        // Some mobile wallets only support signTransaction
-        console.log('Mobile wallet only supports signTransaction...');
 
         const signedTransaction = await senderWallet.signTransaction(transaction);
 
-        // Validate signature before sending
+        // Validate that transaction is properly signed
         if (!signedTransaction || !signedTransaction.signatures || signedTransaction.signatures.length === 0) {
-          throw new Error('Transaction was not properly signed by mobile wallet');
+          throw new Error('Transaction was not properly signed by mobile wallet adapter');
         }
 
         // Check if our public key has a signature
@@ -614,8 +567,10 @@ export async function executeSOLTransfer(
         );
 
         if (!ourSignature || !ourSignature.signature) {
-          throw new Error('Missing signature for sender public key in mobile wallet');
+          throw new Error('Missing signature for sender public key in mobile wallet adapter');
         }
+
+        console.log('Mobile wallet adapter transaction signed successfully, sending to network...');
 
         // Validate the signed transaction before sending
         validateTransactionBeforeSubmission(signedTransaction, senderWallet.publicKey, true);
@@ -624,9 +579,99 @@ export async function executeSOLTransfer(
           skipPreflight: false,
           preflightCommitment: 'confirmed'
         });
-        console.log('Mobile signTransaction successful:', signature);
+        console.log('Mobile wallet adapter transaction successful:', signature);
+
       } else {
-        throw new Error('Mobile wallet does not support any transaction methods');
+        // Standard mobile flow with sendTransaction preference
+        // Try sendTransaction first (works with mobile wallet apps)
+        if (senderWallet.sendTransaction) {
+          console.log('Attempting mobile sendTransaction...');
+          try {
+            signature = await senderWallet.sendTransaction(transaction, connection, {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed'
+            });
+            console.log('Mobile sendTransaction successful:', signature);
+
+            // Validate signature immediately after signing
+            if (!signature || signature.length === 0) {
+              throw new Error('Mobile wallet returned empty signature');
+            }
+
+          } catch (mobileError) {
+            console.error('Mobile sendTransaction failed:', mobileError);
+            console.log('Falling back to signTransaction flow...');
+
+            // Fallback: Try signTransaction + sendRawTransaction
+            if (senderWallet.signTransaction) {
+              try {
+                console.log('Attempting signTransaction fallback...');
+                const signedTransaction = await senderWallet.signTransaction(transaction);
+
+                // Validate that transaction is properly signed
+                if (!signedTransaction || !signedTransaction.signatures || signedTransaction.signatures.length === 0) {
+                  throw new Error('Transaction was not properly signed by wallet');
+                }
+
+                // Check if our public key has a signature
+                const ourSignature = signedTransaction.signatures.find((sig: any) =>
+                  sig.publicKey.equals(senderWallet.publicKey)
+                );
+
+                if (!ourSignature || !ourSignature.signature) {
+                  throw new Error('Missing signature for sender public key');
+                }
+
+                console.log('Transaction signed successfully, sending to network...');
+
+                // Validate the signed transaction before sending
+                validateTransactionBeforeSubmission(signedTransaction, senderWallet.publicKey, true);
+
+                signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+                  skipPreflight: false,
+                  preflightCommitment: 'confirmed'
+                });
+                console.log('Fallback transaction successful:', signature);
+
+              } catch (fallbackError) {
+                console.error('Fallback method also failed:', fallbackError);
+                throw new Error(`Mobile transaction failed: ${mobileError instanceof Error ? mobileError.message : 'Unknown error'}`);
+              }
+            } else {
+              throw new Error('Mobile wallet does not support transaction signing');
+            }
+          }
+        } else if (senderWallet.signTransaction) {
+          // Some mobile wallets only support signTransaction
+          console.log('Mobile wallet only supports signTransaction...');
+
+          const signedTransaction = await senderWallet.signTransaction(transaction);
+
+          // Validate signature before sending
+          if (!signedTransaction || !signedTransaction.signatures || signedTransaction.signatures.length === 0) {
+            throw new Error('Transaction was not properly signed by mobile wallet');
+          }
+
+          // Check if our public key has a signature
+          const ourSignature = signedTransaction.signatures.find((sig: any) =>
+            sig.publicKey.equals(senderWallet.publicKey)
+          );
+
+          if (!ourSignature || !ourSignature.signature) {
+            throw new Error('Missing signature for sender public key in mobile wallet');
+          }
+
+          // Validate the signed transaction before sending
+          validateTransactionBeforeSubmission(signedTransaction, senderWallet.publicKey, true);
+
+          signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed'
+          });
+          console.log('Mobile signTransaction successful:', signature);
+        } else {
+          throw new Error('Mobile wallet does not support any transaction methods');
+        }
       }
     } else {
       // Desktop: Use traditional sign + send flow
@@ -717,7 +762,11 @@ export async function executeSOLTransfer(
         if (errorMessage.includes('user rejected') || errorMessage.includes('cancelled')) {
           throw new Error('Transaction was cancelled in your mobile wallet app. Please try again and approve the transaction.');
         } else if (errorMessage.includes('signature verification failed') || errorMessage.includes('missing signature')) {
-          throw new Error('Signature verification failed. This usually means the transaction wasn\'t properly signed. Please ensure your wallet app is connected and try again.');
+          if (isMobileWalletAdapter) {
+            throw new Error('Mobile wallet adapter signing failed. Please ensure your wallet app is connected and try again. If the issue persists, try using the direct Phantom option instead.');
+          } else {
+            throw new Error('Signature verification failed. This usually means the transaction wasn\'t properly signed. Please ensure your wallet app is connected and try again.');
+          }
         } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
           throw new Error('Network connection issue. Please check your mobile data/WiFi connection and try again.');
         } else if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
@@ -726,6 +775,8 @@ export async function executeSOLTransfer(
           throw new Error('Wallet connection lost. Please reconnect your Phantom wallet and try again.');
         } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('not enough')) {
           throw new Error('Insufficient SOL balance. Please add more SOL to your wallet and try again.');
+        } else if (isMobileWalletAdapter) {
+          throw new Error(`Mobile wallet adapter failed: ${error.message}. Try using the direct Phantom option instead of Mobile wallet adapter.`);
         } else {
           throw new Error(`Mobile payment failed: ${error.message}. Please ensure your wallet app is up to date.`);
         }
