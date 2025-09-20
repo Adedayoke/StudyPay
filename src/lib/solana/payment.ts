@@ -204,7 +204,7 @@ export const CAMPUS_MERCHANTS = {
   food: {
     'mama-adunni': {
       name: "Mama Adunni's Kitchen",
-      wallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+      wallet: '5DyKMBSxHZ1FXRbTG4s9GiRGHgWpTorWMun56LeMCJHd',
       type: 'restaurant',
     },
     'campus-cafe': {
@@ -350,9 +350,9 @@ export function isValidPaymentAmount(amount: BigNumber): boolean {
  * Create mock vendor address for demo (replace with real addresses)
  */
 export function getMockVendorAddress(): string {
-  // Using a valid Solana devnet address for testing
-  // This represents "Mama Adunni's Kitchen" vendor
-  return '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+  // Using the specified vendor address for testing
+  // This represents the default vendor for StudyPay
+  return '5DyKMBSxHZ1FXRbTG4s9GiRGHgWpTorWMun56LeMCJHd';
 }
 
 /**
