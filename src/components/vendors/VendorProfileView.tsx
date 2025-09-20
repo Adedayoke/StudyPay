@@ -15,8 +15,9 @@ import { StudyPayIcon, CategoryIcon, StatusIcon } from '@/lib/utils/iconMap';
 import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
 import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
-import { createVendorPaymentRequest } from '@/lib/solana/payment';
+import { createVendorPaymentRequest, createSolanaPayTransfer } from '@/lib/solana/payment';
 import { formatCurrency, nairaToSolSync } from '@/lib/solana/utils';
+import { PublicKey } from '@solana/web3.js';
 
 interface VendorProfileViewProps {
   vendor: VendorProfile;
@@ -49,6 +50,15 @@ export default function VendorProfileView({
     }
     return amount.toString();
   };
+
+  // Device detection for optimal payment method
+  const isMobile = typeof window !== 'undefined' && (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && 'ontouchstart' in window)
+  );
+
+  // Choose payment method based on device
+  const useSolanaPay = isMobile;
 
   // Update cart count when component mounts
   useEffect(() => {
@@ -96,9 +106,38 @@ export default function VendorProfileView({
     // Convert Naira input back to SOL for payment processing
     const solAmount = nairaToSolSync(nairaAmount);
 
-    setSelectedAmount(solAmount);
-    setPaymentMemo(paymentMemo || `Payment to ${vendor.businessName}`);
-    setShowPaymentExecutor(true);
+    if (useSolanaPay) {
+      // Mobile: Use Solana Pay Transfer Request
+      console.log('📱 Using Solana Pay method for mobile vendor payment');
+
+      const paymentURL = createSolanaPayTransfer(
+        new PublicKey(vendor.walletAddress),
+        solAmount,
+        `Payment to ${vendor.businessName}`,
+        {
+          message: paymentMemo || `Payment to ${vendor.businessName}`,
+          memo: `StudyPay vendor payment: ${paymentMemo || 'custom payment'}`
+        }
+      );
+
+      // Open Solana Pay URL in wallet
+      console.log('Opening Solana Pay URL:', paymentURL.toString());
+      window.open(paymentURL.toString(), '_blank');
+
+      // For Solana Pay, we can't monitor the transaction directly
+      // We'll mark it as completed optimistically
+      setTimeout(() => {
+        handlePaymentComplete();
+      }, 2000);
+
+    } else {
+      // Desktop: Use direct payment flow
+      console.log('💻 Using direct payment method for desktop vendor payment');
+
+      setSelectedAmount(solAmount);
+      setPaymentMemo(paymentMemo || `Payment to ${vendor.businessName}`);
+      setShowPaymentExecutor(true);
+    }
   };
 
   const handlePaymentComplete = () => {
@@ -328,6 +367,18 @@ export default function VendorProfileView({
             QR Code
           </Button>
         </div>
+
+        {connected && customAmount && !isNaN(Number(customAmount)) && Number(customAmount) > 0 && isOpen() && (
+          <div className="text-center mt-2">
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              useSolanaPay
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+            }`}>
+              {useSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
+            </span>
+          </div>
+        )}
       </Card>
 
       {/* Vendor Info */}
@@ -405,7 +456,7 @@ export default function VendorProfileView({
         </div>
       </Card>
 
-      {/* Direct Payment Modal */}
+      {/* Hybrid Payment Modal */}
       {showPaymentExecutor && selectedAmount && connected && publicKey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-dark-bg-primary rounded-lg p-6 max-w-md w-full border border-dark-border-primary">
@@ -413,29 +464,84 @@ export default function VendorProfileView({
               <h3 className="text-lg font-semibold text-dark-text-primary mb-2">
                 Confirm Payment
               </h3>
-              <div className="text-sm text-dark-text-secondary">
+              <div className="text-sm text-dark-text-secondary mb-3">
                 <div>Amount: ₦{solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(selectedAmount, 'SOL')})</span></div>
                 <div>To: {vendor.businessName}</div>
                 <div>Description: {paymentMemo}</div>
               </div>
+              
+              {/* Payment Method Indicator */}
+              <div className="text-center mb-4">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  useSolanaPay
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                }`}>
+                  {useSolanaPay ? '📱 Using Solana Pay (Mobile)' : '💻 Using Direct Transfer (Desktop)'}
+                </span>
+              </div>
             </div>
             
-            <PaymentExecutor
-              paymentRequest={createVendorPaymentRequest(
-                vendor.walletAddress,
-                selectedAmount,
-                paymentMemo
-              )}
-              onSuccess={(signature) => {
-                console.log('Payment successful:', signature);
-                handlePaymentComplete();
-              }}
-              onError={(error) => {
-                console.error('Payment failed:', error);
-                alert('Payment failed. Please try again.');
-              }}
-              onCancel={() => setShowPaymentExecutor(false)}
-            />
+            {useSolanaPay ? (
+              // Mobile: Solana Pay Flow
+              <div className="space-y-4">
+                <div className="text-center text-sm text-dark-text-secondary">
+                  Tap to open your Solana wallet and complete the payment
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const paymentURL = createSolanaPayTransfer(
+                      new PublicKey(vendor.walletAddress),
+                      selectedAmount,
+                      `Payment to ${vendor.businessName}`,
+                      {
+                        message: paymentMemo || `Payment to ${vendor.businessName}`,
+                        memo: `StudyPay vendor payment: ${paymentMemo || 'quick order'}`
+                      }
+                    );
+                    
+                    console.log('📱 Opening Solana Pay URL for quick order:', paymentURL.toString());
+                    window.open(paymentURL.toString(), '_blank');
+                    
+                    // Close modal and mark as completed optimistically
+                    setTimeout(() => {
+                      handlePaymentComplete();
+                    }, 2000);
+                  }}
+                  className="w-full"
+                >
+                  <StudyPayIcon name="wallet" size={16} className="mr-2" />
+                  Open Wallet & Pay
+                </Button>
+              </div>
+            ) : (
+              // Desktop: Direct Payment Flow
+              <PaymentExecutor
+                paymentRequest={createVendorPaymentRequest(
+                  vendor.walletAddress,
+                  selectedAmount,
+                  paymentMemo
+                )}
+                onSuccess={(signature) => {
+                  console.log('Payment successful:', signature);
+                  handlePaymentComplete();
+                }}
+                onError={(error) => {
+                  console.error('Payment failed:', error);
+                  alert('Payment failed. Please try again.');
+                }}
+                onCancel={() => setShowPaymentExecutor(false)}
+              />
+            )}
+            
+            <Button
+              variant="secondary"
+              onClick={() => setShowPaymentExecutor(false)}
+              className="w-full mt-4"
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       )}
@@ -444,7 +550,26 @@ export default function VendorProfileView({
       {showQRGenerator && selectedAmount && connected && publicKey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-dark-bg-primary rounded-lg p-6 max-w-md w-full border border-dark-border-primary">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-dark-text-primary mb-2">
+                Generate Payment QR Code
+              </h3>
+              <div className="text-sm text-dark-text-secondary mb-3">
+                <div>Amount: ₦{solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(selectedAmount, 'SOL')})</span></div>
+                <div>To: {vendor.businessName}</div>
+                <div>Description: {paymentMemo}</div>
+              </div>
+              
+              {/* QR Code Method Indicator */}
+              <div className="text-center mb-4">
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                  📱 QR Code (Scan with mobile wallet)
+                </span>
+              </div>
+            </div>
+            
             <FoodPaymentQR
+              vendorWallet={vendor.walletAddress}
               onPaymentGenerated={(url) => {
                 console.log('Payment URL generated:', url);
                 // Handle payment completion

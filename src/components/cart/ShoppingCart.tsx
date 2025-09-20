@@ -17,7 +17,8 @@ import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { ShoppingCart as CartType, CartItem } from '@/lib/types/order';
 import BigNumber from 'bignumber.js';
 import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
-import { createVendorPaymentRequest } from '@/lib/solana/payment';
+import { createVendorPaymentRequest, executePaymentFlow, createSolanaPayTransfer } from '@/lib/solana/payment';
+import { PublicKey } from '@solana/web3.js';
 
 interface ShoppingCartProps {
   onClose?: () => void;
@@ -43,6 +44,15 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
     }
     return amount.toString();
   };
+
+  // Device detection for optimal payment method
+  const isMobile = typeof window !== 'undefined' && (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && 'ontouchstart' in window)
+  );
+
+  // Choose payment method based on device
+  const useSolanaPay = isMobile;
 
   useEffect(() => {
     const updateCart = () => {
@@ -73,15 +83,68 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
     // Calculate total for payment
     const total = cart.total;
 
-    // Create real payment request
-    const paymentReq = createVendorPaymentRequest(
-      vendor.walletAddress,
-      total,
-      `Order from ${cart.items.length} items at ${vendor.businessName}`
-    );
+    if (useSolanaPay) {
+      // Mobile: Use Solana Pay Transfer Request
+      console.log('📱 Using Solana Pay method for mobile checkout');
 
-    setPaymentRequest(paymentReq);
-    setShowPayment(true);
+      const paymentURL = createSolanaPayTransfer(
+        new PublicKey(vendor.walletAddress),
+        total,
+        `Order from ${cart.items.length} items at ${vendor.businessName}`,
+        {
+          message: `Order payment for ${cart.items.length} items`,
+          memo: `StudyPay order: ${cart.items.length} items`
+        }
+      );
+
+      // Open Solana Pay URL in wallet
+      console.log('Opening Solana Pay URL:', paymentURL.toString());
+      window.open(paymentURL.toString(), '_blank');
+
+      // For Solana Pay, we can't monitor the transaction directly
+      // We'll create the order optimistically and let the user know
+      setTimeout(() => {
+        const order = orderService.createOrder(
+          publicKey?.toBase58() || 'demo_wallet',
+          'Demo Customer',
+          vendor,
+          cart.items.map(item => ({
+            productId: item.productId,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            quantity: item.quantity,
+            category: item.category,
+            specialInstructions: item.specialInstructions || specialInstructions,
+            estimatedPrepTime: item.estimatedPrepTime
+          })),
+          'solana-pay-transfer' // Placeholder signature for Solana Pay
+        );
+
+        // Clear cart
+        cartService.clearCart();
+        setCart(cartService.getCart());
+
+        // Notify parent component
+        if (onOrderPlaced) {
+          onOrderPlaced(order.id);
+        }
+      }, 2000);
+
+    } else {
+      // Desktop: Use direct payment flow
+      console.log('💻 Using direct payment method for desktop checkout');
+
+      // Create real payment request
+      const paymentReq = createVendorPaymentRequest(
+        vendor.walletAddress,
+        total,
+        `Order from ${cart.items.length} items at ${vendor.businessName}`
+      );
+
+      setPaymentRequest(paymentReq);
+      setShowPayment(true);
+    }
   };
 
   const handlePaymentComplete = (signature: string) => {
@@ -192,6 +255,13 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
             />
           </div>
 
+          {/* Payment Method Indicator */}
+          <div className="flex justify-center">
+            <span className="text-sm px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+              💻 Direct Payment (Desktop Optimized)
+            </span>
+          </div>
+
           {/* Payment Executor */}
           <PaymentExecutor
             paymentRequest={paymentRequest}
@@ -293,15 +363,29 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
         </div>
 
         {/* Checkout Button */}
-        <Button
-          variant="primary"
-          onClick={handleCheckout}
-          className="w-full"
-          size="lg"
-          disabled={!connected || cart.items.length === 0}
-        >
-          {!connected ? 'Connect Wallet to Checkout' : `Pay ₦${solToNaira(cart.total).toFixed(0)}`}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="primary"
+            onClick={handleCheckout}
+            className="w-full"
+            size="lg"
+            disabled={!connected || cart.items.length === 0}
+          >
+            {!connected ? 'Connect Wallet to Checkout' : `Pay ₦${solToNaira(cart.total).toFixed(0)}`}
+          </Button>
+
+          {connected && cart.items.length > 0 && (
+            <div className="text-center">
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                useSolanaPay
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
+              }`}>
+                {useSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
+              </span>
+            </div>
+          )}
+        </div>
 
         {cart.vendorId && (
           <div className="text-center text-sm text-dark-text-secondary">
