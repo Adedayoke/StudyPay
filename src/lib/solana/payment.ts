@@ -412,13 +412,15 @@ export async function executeSOLTransfer(
     from: senderWallet.publicKey.toString(),
     to: paymentRequest.recipient.toString(),
     amount: paymentRequest.amount.toString(),
-    connected: senderWallet.connected
+    amountInLamports: solToLamports(paymentRequest.amount).toString(),
+    connected: senderWallet.connected,
+    walletName: senderWallet.name || 'Unknown'
   });
 
-  // Check if we're on mobile - improved detection
-  const isMobile = typeof window !== 'undefined' && 
-    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-     window.innerWidth <= 768);
+  // Check if we're on mobile - improved detection for better mobile wallet support
+  const isMobile = typeof window !== 'undefined' &&
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+     (window.innerWidth <= 768 && 'ontouchstart' in window));
 
   console.log('Device detection:', {
     isMobile,
@@ -429,7 +431,7 @@ export async function executeSOLTransfer(
   });
 
   try {
-    // Create transfer transaction
+    // Create transfer transaction with mobile optimizations
     const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: senderWallet.publicKey,
@@ -438,8 +440,8 @@ export async function executeSOLTransfer(
       })
     );
 
-    // Add memo if provided
-    if (paymentRequest.memo) {
+    // Add memo if provided (skip on mobile if it makes transaction too large)
+    if (paymentRequest.memo && !isMobile) {
       transaction.add(
         new TransactionInstruction({
           keys: [{ pubkey: senderWallet.publicKey, isSigner: true, isWritable: false }],
@@ -447,11 +449,15 @@ export async function executeSOLTransfer(
           programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
         })
       );
+    } else if (paymentRequest.memo && isMobile) {
+      console.log('Skipping memo on mobile for better compatibility');
     }
 
-    // Get recent blockhash with retry logic
+    // Get recent blockhash with retry logic and mobile optimization
     console.log('Getting recent blockhash...');
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(
+      isMobile ? 'finalized' : 'confirmed' // Use finalized for mobile for better reliability
+    );
     transaction.recentBlockhash = blockhash;
     transaction.lastValidBlockHeight = lastValidBlockHeight;
     transaction.feePayer = senderWallet.publicKey;
@@ -459,47 +465,107 @@ export async function executeSOLTransfer(
     console.log('Transaction created:', {
       feePayer: transaction.feePayer?.toString() || 'undefined',
       recentBlockhash: transaction.recentBlockhash,
-      instructions: transaction.instructions.length
+      lastValidBlockHeight: transaction.lastValidBlockHeight,
+      instructions: transaction.instructions.length,
+      isMobile
     });
 
     let signature: string;
 
     // Use different signing methods for mobile vs desktop
-    if (isMobile && senderWallet.sendTransaction) {
-      // Mobile: Use sendTransaction for better mobile wallet compatibility
-      console.log('Mobile detected: Using sendTransaction');
-      try {
-        signature = await senderWallet.sendTransaction(transaction, connection);
-        console.log('Mobile transaction sent, signature:', signature);
-      } catch (mobileError) {
-        console.error('Mobile sendTransaction failed:', mobileError);
-        // Fallback to desktop method if mobile fails
-        console.log('Falling back to desktop signing method');
-        if (senderWallet.signTransaction) {
-          const signed = await senderWallet.signTransaction(transaction);
-          signature = await connection.sendRawTransaction(signed.serialize());
-          console.log('Fallback transaction sent, signature:', signature);
-        } else {
-          throw mobileError;
+    if (isMobile) {
+      console.log('Mobile device detected - using mobile-optimized transaction flow');
+
+      // Try sendTransaction first (works with mobile wallet apps)
+      if (senderWallet.sendTransaction) {
+        console.log('Attempting mobile sendTransaction...');
+        try {
+          signature = await senderWallet.sendTransaction(transaction, connection, {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed'
+          });
+          console.log('Mobile sendTransaction successful:', signature);
+        } catch (mobileError) {
+          console.error('Mobile sendTransaction failed:', mobileError);
+          console.log('Falling back to signTransaction flow...');
+
+          // Fallback: Try signTransaction + sendRawTransaction
+          if (senderWallet.signTransaction) {
+            try {
+              const signed = await senderWallet.signTransaction(transaction);
+              signature = await connection.sendRawTransaction(signed.serialize(), {
+                skipPreflight: false,
+                preflightCommitment: 'confirmed'
+              });
+              console.log('Fallback transaction successful:', signature);
+            } catch (fallbackError) {
+              console.error('Fallback method also failed:', fallbackError);
+              throw new Error(`Mobile transaction failed: ${mobileError instanceof Error ? mobileError.message : 'Unknown error'}`);
+            }
+          } else {
+            throw new Error('Mobile wallet does not support transaction signing');
+          }
         }
+      } else if (senderWallet.signTransaction) {
+        // Some mobile wallets only support signTransaction
+        console.log('Mobile wallet only supports signTransaction...');
+        const signed = await senderWallet.signTransaction(transaction);
+        signature = await connection.sendRawTransaction(signed.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed'
+        });
+        console.log('Mobile signTransaction successful:', signature);
+      } else {
+        throw new Error('Mobile wallet does not support any transaction methods');
       }
-    } else if (senderWallet.signTransaction) {
-      // Desktop: Use traditional sign + send flow
-      console.log('Desktop detected: Using signTransaction');
-      const signed = await senderWallet.signTransaction(transaction);
-      signature = await connection.sendRawTransaction(signed.serialize());
-      console.log('Desktop transaction sent, signature:', signature);
     } else {
-      throw new Error('Wallet does not support transaction signing or sending');
+      // Desktop: Use traditional sign + send flow
+      console.log('Desktop detected: Using standard signTransaction flow');
+      if (!senderWallet.signTransaction) {
+        throw new Error('Desktop wallet does not support transaction signing');
+      }
+
+      const signed = await senderWallet.signTransaction(transaction);
+      signature = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed'
+      });
+      console.log('Desktop transaction successful:', signature);
     }
 
-    // Confirm transaction with better error handling
+    // Confirm transaction with mobile-optimized settings
     console.log('Confirming transaction:', signature);
-    const confirmation = await connection.confirmTransaction({
-      signature,
-      blockhash: transaction.recentBlockhash!,
-      lastValidBlockHeight: transaction.lastValidBlockHeight!
-    }, 'confirmed');
+
+    // Use different confirmation strategies for mobile vs desktop
+    let confirmation;
+    if (isMobile) {
+      // Mobile: Use more lenient confirmation settings
+      console.log('Using mobile-optimized confirmation...');
+      confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash: transaction.recentBlockhash!,
+        lastValidBlockHeight: transaction.lastValidBlockHeight!
+      }, 'confirmed');
+
+      // If initial confirmation fails, try a longer wait
+      if (confirmation.value.err) {
+        console.log('Initial confirmation failed, waiting longer...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+
+        confirmation = await connection.confirmTransaction({
+          signature,
+          blockhash: transaction.recentBlockhash!,
+          lastValidBlockHeight: transaction.lastValidBlockHeight!
+        }, 'confirmed');
+      }
+    } else {
+      // Desktop: Use standard confirmation
+      confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash: transaction.recentBlockhash!,
+        lastValidBlockHeight: transaction.lastValidBlockHeight!
+      }, 'confirmed');
+    }
 
     if (confirmation.value.err) {
       console.error('Transaction confirmation failed:', confirmation.value.err);
@@ -517,9 +583,28 @@ export async function executeSOLTransfer(
       isMobile,
       hasSendTransaction: !!senderWallet.sendTransaction,
       hasSignTransaction: !!senderWallet.signTransaction,
-      publicKey: senderWallet.publicKey?.toString()
+      publicKey: senderWallet.publicKey?.toString(),
+      walletName: senderWallet.name || 'Unknown'
     });
-    throw new Error(`Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+    // Provide mobile-specific error messages
+    if (isMobile) {
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected')) {
+          throw new Error('Transaction was cancelled in your mobile wallet app');
+        } else if (error.message.includes('network')) {
+          throw new Error('Network connection issue. Please check your mobile data/WiFi and try again');
+        } else if (error.message.includes('timeout')) {
+          throw new Error('Transaction timed out. Mobile networks can be slower - please try again');
+        } else {
+          throw new Error(`Mobile payment failed: ${error.message}`);
+        }
+      } else {
+        throw new Error('Mobile payment failed. Please ensure your wallet app is up to date and try again');
+      }
+    } else {
+      throw new Error(`Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 

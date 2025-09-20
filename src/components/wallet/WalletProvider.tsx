@@ -14,13 +14,15 @@ import {
 } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import { 
   WalletModalProvider,
   WalletMultiButton,
   WalletDisconnectButton
 } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+
+// Import wallet adapter CSS
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 // =============================================================================
 // Wallet Context Provider
@@ -35,25 +37,13 @@ export function WalletContextProvider({ children }: WalletContextProviderProps) 
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
-  // Detect if user is on mobile - simplified detection
-  const isMobile = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      window.navigator.userAgent
-    );
-  }, []);
-
-  // Configure supported wallets - prioritize mobile wallets on mobile devices
+  // Configure supported wallets
   const wallets = useMemo(
-    () => {
-      const phantom = new PhantomWalletAdapter();
-      const solflare = new SolflareWalletAdapter();
-      
-      // On mobile, prioritize Solflare (has mobile app), then Phantom
-      // On desktop, prioritize Phantom (extension), then Solflare
-      return isMobile ? [solflare, phantom] : [phantom, solflare];
-    },
-    [isMobile]
+    () => [
+      new PhantomWalletAdapter(),
+      // Add more wallets here if needed
+    ],
+    []
   );
 
   return (
