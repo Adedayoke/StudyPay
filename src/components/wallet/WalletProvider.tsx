@@ -14,15 +14,17 @@ import {
 } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
+import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import { TrustWalletAdapter } from '@solana/wallet-adapter-trust';
 import { 
   WalletModalProvider,
   WalletMultiButton,
   WalletDisconnectButton
 } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+import BigNumber from 'bignumber.js';
 
-// Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 
 // =============================================================================
 // Wallet Context Provider
@@ -37,13 +39,38 @@ export function WalletContextProvider({ children }: WalletContextProviderProps) 
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
-  // Configure supported wallets
+  // Detect if user is on mobile - improved detection
+  const isMobile = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    
+    // Check user agent for mobile devices
+    const userAgentMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      window.navigator.userAgent
+    );
+    
+    // Check for touch capability (most mobile devices have touch)
+    const hasTouchScreen = 'ontouchstart' in window || 
+      (window.navigator && window.navigator.maxTouchPoints > 0);
+    
+    // Check screen width (tablets and small screens)
+    const smallScreen = window.innerWidth <= 768;
+    
+    // Consider mobile if any of these conditions are true
+    return userAgentMobile || (hasTouchScreen && smallScreen);
+  }, []);
+
+  // Configure supported wallets - prioritize mobile wallets on mobile devices
   const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      // Add more wallets here if needed
-    ],
-    []
+    () => {
+      const phantom = new PhantomWalletAdapter();
+      const solflare = new SolflareWalletAdapter();
+      const trust = new TrustWalletAdapter();
+      
+      // On mobile, prioritize Solflare and Trust (mobile apps), then Phantom
+      // On desktop, prioritize Phantom (extension), then Solflare and Trust
+      return isMobile ? [solflare, trust, phantom] : [phantom, solflare, trust];
+    },
+    [isMobile]
   );
 
   return (
@@ -81,7 +108,8 @@ export function WalletButton({ variant = 'connect', className }: WalletButtonPro
   return (
     <WalletMultiButton 
       className={`
-        bg-solana-gradient hover:bg-solana-gradient-dark text-white font-medium py-2 px-4 rounded-lg
+        bg-gradient-to-r from-purple-500 to-green-500 hover:from-purple-600 hover:to-green-600 
+        text-white font-medium py-2 px-4 rounded-lg
         transition-all duration-200 shadow-md hover:shadow-lg ${className}
       `}
     />
@@ -95,6 +123,7 @@ export function WalletButton({ variant = 'connect', className }: WalletButtonPro
 export function WalletStatus() {
   const { publicKey, connected, connecting } = useWallet();
   const { connection } = useConnection();
+  const { convertSolToNaira } = usePriceConversion();
   const [balance, setBalance] = React.useState<number | null>(null);
 
   // Fetch balance when wallet connects
@@ -146,7 +175,12 @@ export function WalletStatus() {
       <div className="mt-1 text-xs text-green-700">
         <div>Address: {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}</div>
         {balance !== null && (
-          <div>Balance: {balance.toFixed(4)} SOL</div>
+          <div className="space-y-1">
+            <div>Balance: {balance.toFixed(4)} SOL</div>
+            <div className="font-medium">
+              ≈ ₦{convertSolToNaira(new BigNumber(balance)).amount.toFormat(2)}
+            </div>
+          </div>
         )}
       </div>
     </div>
