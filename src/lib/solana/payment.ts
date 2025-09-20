@@ -463,6 +463,166 @@ function validateTransactionBeforeSubmission(
 }
 
 /**
+ * Comprehensive mobile wallet connectivity test
+ */
+async function testMobileWalletConnectivity(wallet: any, connection: Connection): Promise<{
+  connected: boolean;
+  canSign: boolean;
+  canSend: boolean;
+  networkStatus: string;
+  walletType: string;
+  recommendations: string[];
+}> {
+  const diagnostics = {
+    connected: false,
+    canSign: false,
+    canSend: false,
+    networkStatus: 'unknown',
+    walletType: 'unknown',
+    recommendations: [] as string[]
+  };
+
+  try {
+    // Test basic connectivity
+    diagnostics.connected = wallet.connected && !!wallet.publicKey;
+
+    // Test network connectivity
+    try {
+      const version = await connection.getVersion();
+      diagnostics.networkStatus = version ? 'connected' : 'disconnected';
+    } catch (networkError) {
+      diagnostics.networkStatus = 'error';
+      diagnostics.recommendations.push('Check your internet connection');
+    }
+
+    // Test wallet capabilities
+    diagnostics.canSign = typeof wallet.signTransaction === 'function';
+    diagnostics.canSend = typeof wallet.sendTransaction === 'function';
+
+    // Identify wallet type
+    if (wallet.name) {
+      diagnostics.walletType = wallet.name.toLowerCase();
+      if (diagnostics.walletType.includes('phantom')) {
+        diagnostics.walletType = 'Phantom Mobile';
+      } else if (diagnostics.walletType.includes('solflare')) {
+        diagnostics.walletType = 'Solflare Mobile';
+      } else if (diagnostics.walletType.includes('trust')) {
+        diagnostics.walletType = 'Trust Wallet';
+      } else if (diagnostics.walletType.includes('metamask')) {
+        diagnostics.walletType = 'MetaMask Mobile';
+      }
+    }
+
+    // Generate recommendations based on diagnostics
+    if (!diagnostics.connected) {
+      diagnostics.recommendations.push('Reconnect your mobile wallet');
+    }
+
+    if (!diagnostics.canSign && !diagnostics.canSend) {
+      diagnostics.recommendations.push('Your wallet may not support Solana transactions');
+    }
+
+    if (diagnostics.networkStatus === 'error') {
+      diagnostics.recommendations.push('Check your internet connection');
+    }
+
+    if (diagnostics.walletType === 'Phantom Mobile' && !diagnostics.canSign) {
+      diagnostics.recommendations.push('Try alternative signing method');
+      diagnostics.recommendations.push('Ensure Phantom app is updated');
+    }
+
+    if (diagnostics.recommendations.length === 0) {
+      diagnostics.recommendations.push('Try refreshing the page and reconnecting');
+      diagnostics.recommendations.push('Ensure your wallet app is updated');
+    }
+
+  } catch (error) {
+    console.error('Wallet diagnostics failed:', error);
+    diagnostics.recommendations.push('Unable to diagnose wallet - try refreshing');
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Attempt alternative mobile signing methods
+ */
+async function attemptAlternativeMobileSigning(wallet: any, transaction: Transaction, connection: Connection): Promise<string | null> {
+  console.log('Attempting alternative mobile signing methods...');
+
+  try {
+    // Method 1: Try with different preflight settings
+    if (wallet.sendTransaction) {
+      console.log('Trying sendTransaction with different preflight settings...');
+      try {
+        const signature = await wallet.sendTransaction(transaction, connection, {
+          skipPreflight: false, // Try with preflight enabled
+          preflightCommitment: 'processed'
+        });
+        console.log('Alternative method 1 successful');
+        return signature;
+      } catch (error) {
+        console.log('Method 1 failed, trying method 2...');
+      }
+    }
+
+    // Method 2: Manual sign and send with different settings
+    if (wallet.signTransaction) {
+      console.log('Trying manual sign with different network settings...');
+      try {
+        const signedTx = await wallet.signTransaction(transaction);
+
+        if (signedTx) {
+          const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+            skipPreflight: false, // Try with preflight
+            preflightCommitment: 'processed'
+          });
+          console.log('Alternative method 2 successful');
+          return signature;
+        }
+      } catch (error) {
+        console.log('Method 2 failed, trying method 3...');
+      }
+    }
+
+    // Method 3: Try with minimal transaction (test transaction)
+    console.log('Trying minimal test transaction...');
+    try {
+      const testTransaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: wallet.publicKey, // Send to self for testing
+          lamports: 1, // Minimal amount
+        })
+      );
+
+      // Get fresh blockhash
+      const { blockhash } = await connection.getLatestBlockhash();
+      testTransaction.recentBlockhash = blockhash;
+      testTransaction.feePayer = wallet.publicKey;
+
+      if (wallet.sendTransaction) {
+        const testSignature = await wallet.sendTransaction(testTransaction, connection, {
+          skipPreflight: true,
+          preflightCommitment: 'confirmed'
+        });
+
+        console.log('Test transaction successful, wallet is working');
+        // If test works, the issue might be with the original transaction
+        return null; // Return null to indicate test worked but original should be retried
+      }
+    } catch (error) {
+      console.log('Test transaction also failed:', error);
+    }
+
+  } catch (error) {
+    console.error('All alternative signing methods failed:', error);
+  }
+
+  return null; // All methods failed
+}
+
+/**
  * Execute real SOL transfer using wallet adapter
  */
 export async function executeSOLTransfer(
@@ -570,7 +730,7 @@ export async function executeSOLTransfer(
 
   try {
     // Create transfer transaction with mobile optimizations
-    const transaction = new Transaction().add(
+    let transaction: Transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: senderWallet.publicKey,
         toPubkey: paymentRequest.recipient,
@@ -873,7 +1033,81 @@ export async function executeSOLTransfer(
           throw new Error('Transaction was cancelled in your mobile wallet app. Please try again and approve the transaction.');
         } else if (errorMessage.includes('signature verification failed') || errorMessage.includes('missing signature')) {
           if (isMobile) {
-            throw new Error('Mobile wallet signature issue. Please ensure your wallet app is connected and has sufficient permissions. Try refreshing the page and reconnecting your wallet. If using Phantom mobile, make sure you\'re signed in and connected to the correct network.');
+            // Enhanced mobile signature troubleshooting
+            console.log('Mobile signature failure - starting comprehensive diagnostics...');
+
+            // Test wallet connectivity
+            const walletDiagnostics = await testMobileWalletConnectivity(senderWallet, connection);
+            console.log('Wallet diagnostics:', walletDiagnostics);
+
+            // Update debug overlay with diagnostics
+            if (typeof window !== 'undefined') {
+              const debugEl = document.getElementById('mobile-payment-debug');
+              if (debugEl) {
+                debugEl.innerHTML = `
+                  <div style="color: orange; font-weight: bold;">🔍 Running Diagnostics...</div>
+                  <div style="margin-top: 10px; font-size: 12px;">
+                    <div>Wallet Connected: ${walletDiagnostics.connected ? '✅' : '❌'}</div>
+                    <div>Can Sign: ${walletDiagnostics.canSign ? '✅' : '❌'}</div>
+                    <div>Can Send: ${walletDiagnostics.canSend ? '✅' : '❌'}</div>
+                    <div>Network: ${walletDiagnostics.networkStatus}</div>
+                    <div>Wallet Type: ${walletDiagnostics.walletType}</div>
+                  </div>
+                  <div style="margin-top: 15px; color: yellow; font-size: 12px;">
+                    ${walletDiagnostics.recommendations.join('<br>')}
+                  </div>
+                `;
+                setTimeout(() => {
+                  if (debugEl.parentNode) {
+                    debugEl.parentNode.removeChild(debugEl);
+                  }
+                }, 8000);
+              }
+            }
+
+            // Try alternative signing method if diagnostics suggest it
+            if (walletDiagnostics.recommendations.includes('Try alternative signing method')) {
+              console.log('Attempting alternative signing method...');
+
+              // Create a fresh transaction in case the original is corrupted
+              const freshTransaction = new Transaction().add(
+                SystemProgram.transfer({
+                  fromPubkey: senderWallet.publicKey,
+                  toPubkey: paymentRequest.recipient,
+                  lamports: solToLamports(paymentRequest.amount),
+                })
+              );
+
+              // Get fresh blockhash for the new transaction
+              const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+              freshTransaction.recentBlockhash = blockhash;
+              freshTransaction.lastValidBlockHeight = lastValidBlockHeight;
+              freshTransaction.feePayer = senderWallet.publicKey;
+
+              try {
+                const altSignature = await attemptAlternativeMobileSigning(senderWallet, freshTransaction, connection);
+                if (altSignature) {
+                  console.log('Alternative signing successful:', altSignature);
+
+                  // Confirm the alternative transaction
+                  const confirmation = await connection.confirmTransaction({
+                    signature: altSignature,
+                    blockhash: freshTransaction.recentBlockhash!,
+                    lastValidBlockHeight: freshTransaction.lastValidBlockHeight!
+                  }, 'confirmed');
+
+                  if (confirmation.value.err) {
+                    throw new Error(`Alternative transaction failed: ${confirmation.value.err}`);
+                  }
+
+                  return altSignature; // Return successful signature
+                }
+              } catch (altError) {
+                console.error('Alternative signing also failed:', altError);
+              }
+            }
+
+            throw new Error(`Mobile wallet signature issue detected. ${walletDiagnostics.recommendations.join(' ')} Please follow the troubleshooting steps above.`);
           } else {
             throw new Error('Transaction signature verification failed. Please try refreshing your wallet connection.');
           }
