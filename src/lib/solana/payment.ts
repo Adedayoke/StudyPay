@@ -610,67 +610,135 @@ export async function executeSOLTransfer(
       recipient: paymentRequest.recipient.toString()
     });
 
-    let signature: string;
+    let signature: string = '';
 
     // Use different signing methods for mobile vs desktop
     if (isMobile) {
-      console.log('Mobile device detected - using simplified mobile flow');
+      console.log('Mobile device detected - using enhanced mobile signing flow');
 
-      // For mobile, try the simplest approach first: let the wallet handle everything
-      if (senderWallet.sendTransaction) {
-        console.log('Using wallet sendTransaction for mobile...');
-        try {
-          signature = await senderWallet.sendTransaction(transaction, connection, {
-            skipPreflight: true, // Skip preflight for mobile to avoid signature issues
-            preflightCommitment: 'confirmed'
-          });
-          console.log('Mobile sendTransaction successful:', signature);
-        } catch (mobileSendError) {
-          console.error('Mobile sendTransaction failed, trying signTransaction approach:', mobileSendError);
-
-          // Fallback: sign and send manually
-          if (senderWallet.signTransaction) {
-            try {
-              console.log('Trying manual sign and send for mobile...');
-              const signedTx = await senderWallet.signTransaction(transaction);
-
-              if (signedTx) {
-                signature = await connection.sendRawTransaction(signedTx.serialize(), {
-                  skipPreflight: true, // Skip preflight to avoid validation issues
-                  preflightCommitment: 'confirmed'
-                });
-                console.log('Manual mobile transaction successful:', signature);
-              } else {
-                throw new Error('Wallet returned null signed transaction');
-              }
-            } catch (signError) {
-              console.error('Manual sign approach also failed:', signError);
-              throw new Error(`Mobile transaction failed: ${mobileSendError instanceof Error ? mobileSendError.message : 'Unknown error'}`);
-            }
-          } else {
-            throw new Error(`Mobile transaction failed: ${mobileSendError instanceof Error ? mobileSendError.message : 'Unknown error'}`);
-          }
+      // Update debug overlay for signing phase
+      if (typeof window !== 'undefined') {
+        const debugEl = document.getElementById('mobile-payment-debug');
+        if (debugEl) {
+          debugEl.innerHTML = `
+            <div style="color: #9945FF; font-weight: bold;">📝 Signing Transaction...</div>
+            <div style="margin-top: 10px;">Send TX: ${!!senderWallet.sendTransaction ? '✅' : '❌'}</div>
+            <div>Sign TX: ${!!senderWallet.signTransaction ? '✅' : '❌'}</div>
+            <div>Connected: ${senderWallet.connected ? '✅' : '❌'}</div>
+            <div style="margin-top: 10px; color: yellow;">Requesting signature from wallet...</div>
+          `;
         }
-      } else if (senderWallet.signTransaction) {
-        console.log('Mobile wallet only has signTransaction...');
-        try {
-          const signedTx = await senderWallet.signTransaction(transaction);
+      }
 
-          if (signedTx) {
-            signature = await connection.sendRawTransaction(signedTx.serialize(), {
-              skipPreflight: true, // Skip preflight for mobile
+      // Enhanced mobile signing with retry logic
+      let signingAttempts = 0;
+      const maxSigningAttempts = 3;
+
+      while (signingAttempts < maxSigningAttempts) {
+        try {
+          console.log(`Mobile signing attempt ${signingAttempts + 1}/${maxSigningAttempts}`);
+
+          // For mobile, try the simplest approach first: let the wallet handle everything
+          if (senderWallet.sendTransaction) {
+            console.log('Using wallet sendTransaction for mobile...');
+
+            // Update debug overlay
+            if (typeof window !== 'undefined') {
+              const debugEl = document.getElementById('mobile-payment-debug');
+              if (debugEl) {
+                debugEl.innerHTML = `
+                  <div style="color: #9945FF; font-weight: bold;">📤 Sending via Wallet...</div>
+                  <div style="margin-top: 10px;">Attempt: ${signingAttempts + 1}/${maxSigningAttempts}</div>
+                  <div style="color: yellow;">Waiting for wallet approval...</div>
+                `;
+              }
+            }
+
+            signature = await senderWallet.sendTransaction(transaction, connection, {
+              skipPreflight: true, // Skip preflight for mobile to avoid signature issues
               preflightCommitment: 'confirmed'
             });
-            console.log('Mobile signTransaction successful:', signature);
+            console.log('Mobile sendTransaction successful:', signature);
+            break; // Success, exit retry loop
+          } else if (senderWallet.signTransaction) {
+            console.log('Mobile wallet only has signTransaction, using manual flow...');
+
+            // Update debug overlay
+            if (typeof window !== 'undefined') {
+              const debugEl = document.getElementById('mobile-payment-debug');
+              if (debugEl) {
+                debugEl.innerHTML = `
+                  <div style="color: #9945FF; font-weight: bold;">✍️ Signing Manually...</div>
+                  <div style="margin-top: 10px;">Attempt: ${signingAttempts + 1}/${maxSigningAttempts}</div>
+                  <div style="color: yellow;">Requesting signature...</div>
+                `;
+              }
+            }
+
+            const signedTx = await senderWallet.signTransaction(transaction);
+
+            if (signedTx && signedTx.signatures && signedTx.signatures.length > 0) {
+              // Verify the signature was actually applied
+              const signerSignature = signedTx.signatures.find((sig: any) =>
+                sig.publicKey.equals(senderWallet.publicKey)
+              );
+
+              if (!signerSignature || !signerSignature.signature) {
+                throw new Error('Transaction was not properly signed by wallet');
+              }
+
+              console.log('Transaction signed successfully, sending to network...');
+
+              // Update debug overlay
+              if (typeof window !== 'undefined') {
+                const debugEl = document.getElementById('mobile-payment-debug');
+                if (debugEl) {
+                  debugEl.innerHTML = `
+                    <div style="color: #9945FF; font-weight: bold;">📡 Sending to Network...</div>
+                    <div style="margin-top: 10px;">Signature verified: ✅</div>
+                    <div style="color: yellow;">Broadcasting transaction...</div>
+                  `;
+                }
+              }
+
+              signature = await connection.sendRawTransaction(signedTx.serialize(), {
+                skipPreflight: true, // Skip preflight to avoid validation issues
+                preflightCommitment: 'confirmed'
+              });
+              console.log('Manual mobile transaction successful:', signature);
+              break; // Success, exit retry loop
+            } else {
+              throw new Error('Wallet returned unsigned transaction');
+            }
           } else {
-            throw new Error('Wallet returned null signed transaction');
+            throw new Error('Mobile wallet does not support transaction methods');
           }
-        } catch (signError) {
-          console.error('Mobile signTransaction failed:', signError);
-          throw new Error(`Mobile transaction failed: ${signError instanceof Error ? signError.message : 'Unknown error'}`);
+
+        } catch (signingError) {
+          signingAttempts++;
+          console.error(`Mobile signing attempt ${signingAttempts} failed:`, signingError);
+
+          // Update debug overlay with error
+          if (typeof window !== 'undefined') {
+            const debugEl = document.getElementById('mobile-payment-debug');
+            if (debugEl) {
+              debugEl.innerHTML = `
+                <div style="color: red; font-weight: bold;">⚠️ Signing Failed</div>
+                <div style="margin-top: 10px;">Attempt: ${signingAttempts}/${maxSigningAttempts}</div>
+                <div style="font-size: 12px; color: yellow;">${signingError instanceof Error ? signingError.message : 'Unknown error'}</div>
+                ${signingAttempts < maxSigningAttempts ? '<div style="margin-top: 10px; color: orange;">Retrying...</div>' : '<div style="margin-top: 10px; color: red;">Max attempts reached</div>'}
+              `;
+            }
+          }
+
+          if (signingAttempts >= maxSigningAttempts) {
+            throw new Error(`Mobile signing failed after ${maxSigningAttempts} attempts: ${signingError instanceof Error ? signingError.message : 'Unknown error'}`);
+          }
+
+          // Wait before retrying
+          console.log('Waiting before retry...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      } else {
-        throw new Error('Mobile wallet does not support transaction methods');
       }
     } else {
       // Desktop: Use traditional sign + send flow
@@ -689,6 +757,10 @@ export async function executeSOLTransfer(
 
     // Confirm transaction with mobile-optimized settings
     console.log('Confirming transaction:', signature);
+
+    if (!signature) {
+      throw new Error('Transaction signature was not obtained - transaction may have failed');
+    }
 
     // Use different confirmation strategies for mobile vs desktop
     let confirmation;
@@ -754,6 +826,10 @@ export async function executeSOLTransfer(
           }
         }, 3000);
       }
+    }
+
+    if (!signature) {
+      throw new Error('Transaction completed but signature was not captured');
     }
 
     return signature;
