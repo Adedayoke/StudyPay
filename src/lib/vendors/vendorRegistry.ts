@@ -352,7 +352,7 @@ export class VendorRegistry {
       // FOOD VENDORS (8 vendors)
       {
         id: 'vendor_campus_cafe',
-        walletAddress: 'CampusCafeVendor123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        walletAddress: '5DyKMBSxHZ1FXRbTG4s9GiRGHgWpTorWMun56LeMCJHd', // Valid Solana public key
         businessName: 'Campus Café & Grill',
         category: 'food',
         location: {
@@ -470,7 +470,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_mama_adunni_kitchen',
-        walletAddress: 'MamaAdunniKitchen987654321ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        walletAddress: '5DyKMBSxHZ1FXRbTG4s9GiRGHgWpTorWMun56LeMCJHd', // Valid Solana wallet address for Mama Adunni
         businessName: 'Mama Adunni\'s Kitchen',
         category: 'food',
         location: {
@@ -486,7 +486,7 @@ export class VendorRegistry {
         operatingHours: {
           open: '06:30',
           close: '19:00',
-          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] // Open 7 days
         },
         pricing: {
           acceptsCrypto: true,
@@ -586,7 +586,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_student_snacks',
-        walletAddress: 'StudentSnacksVendor456789ABCDEFGHIJKLMNOPQRSTUVWXYZ123',
+        walletAddress: '11111111111111111111111111111112', // Valid Solana public key (System Program)
         businessName: 'Student Snacks Hub',
         category: 'food',
         location: {
@@ -601,7 +601,7 @@ export class VendorRegistry {
         operatingHours: {
           open: '08:00',
           close: '18:00',
-          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+          days: ['saturday', 'sunday'] // Only open on weekends
         },
         pricing: {
           acceptsCrypto: true,
@@ -701,7 +701,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_cafe_one',
-        walletAddress: 'CafeOneVendor789ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',
+        walletAddress: 'So11111111111111111111111111111111111111112', // Valid Solana public key (Wrapped SOL)
         businessName: 'Café One',
         category: 'food',
         location: {
@@ -820,7 +820,7 @@ export class VendorRegistry {
       // BOOKS & STATIONERY (3 vendors)
       {
         id: 'vendor_uni_books',
-        walletAddress: 'UniBooksVendor456789ABCDEFGHIJKLMNOPQRSTUVWXYZ123',
+        walletAddress: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', // Valid Solana public key (Token Program)
         businessName: 'UniBooks & Stationery',
         category: 'books',
         location: {
@@ -868,7 +868,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_academic_supplies',
-        walletAddress: 'AcademicSuppliesVendor123ABCDEFGHIJKLMNOPQRSTUVWXYZ456',
+        walletAddress: 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL', // Valid Solana public key (Associated Token Program)
         businessName: 'Academic Supplies Plus',
         category: 'books',
         location: {
@@ -918,7 +918,7 @@ export class VendorRegistry {
       // SERVICES (3 vendors)
       {
         id: 'vendor_campus_laundry',
-        walletAddress: 'CampusLaundryVendor789ABCDEFGHIJKLMNOPQRSTUVWXYZ012',
+        walletAddress: '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', // Valid Solana public key (Raydium)
         businessName: 'Campus Laundry Services',
         category: 'services',
         location: {
@@ -967,7 +967,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_printing_services',
-        walletAddress: 'PrintingServicesVendor456ABCDEFGHIJKLMNOPQRSTUVWXYZ789',
+        walletAddress: 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s', // Valid Solana public key (Metaplex)
         businessName: 'QuickPrint Campus',
         category: 'services',
         location: {
@@ -1018,7 +1018,7 @@ export class VendorRegistry {
       // TRANSPORT (2 vendors)
       {
         id: 'vendor_campus_transport',
-        walletAddress: 'CampusTransportVendor012ABCDEFGHIJKLMNOPQRSTUVWXYZ345',
+        walletAddress: '9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP', // Valid Solana public key (Serum)
         businessName: 'Campus Shuttle Services',
         category: 'transport',
         location: {
@@ -1069,7 +1069,7 @@ export class VendorRegistry {
       // ELECTRONICS (2 vendors)
       {
         id: 'vendor_tech_hub',
-        walletAddress: 'TechHubVendor678ABCDEFGHIJKLMNOPQRSTUVWXYZ901',
+        walletAddress: 'ComputeBudget111111111111111111111111111111', // Valid Solana public key (Compute Budget Program)
         businessName: 'TechHub Campus',
         category: 'electronics',
         location: {
@@ -1119,7 +1119,7 @@ export class VendorRegistry {
       // PRINTING (1 vendor)
       {
         id: 'vendor_digital_printing',
-        walletAddress: 'DigitalPrintingVendor234ABCDEFGHIJKLMNOPQRSTUVWXYZ567',
+        walletAddress: 'SysvarRent111111111111111111111111111111111', // Valid Solana public key (Rent Sysvar)
         businessName: 'Digital Print Center',
         category: 'printing',
         location: {
@@ -1169,7 +1169,7 @@ export class VendorRegistry {
       // ADDITIONAL FOOD VENDORS (4 more to reach 8 total)
       {
         id: 'vendor_fresh_fruits',
-        walletAddress: 'FreshFruitsVendor890ABCDEFGHIJKLMNOPQRSTUVWXYZ123',
+        walletAddress: 'Stake11111111111111111111111111111111111111', // Valid Solana public key (Stake Program)
         businessName: 'Fresh Fruits & Juices',
         category: 'food',
         location: {
@@ -1284,7 +1284,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_fast_food_corner',
-        walletAddress: 'FastFoodCornerVendor567ABCDEFGHIJKLMNOPQRSTUVWXYZ890',
+        walletAddress: 'Vote111111111111111111111111111111111111111', // Valid Solana public key (Vote Program)
         businessName: 'Fast Food Corner',
         category: 'food',
         location: {
@@ -1399,7 +1399,7 @@ export class VendorRegistry {
       },
       {
         id: 'vendor_healthy_eats',
-        walletAddress: 'HealthyEatsVendor123ABCDEFGHIJKLMNOPQRSTUVWXYZ456',
+        walletAddress: 'Config1111111111111111111111111111111111111', // Valid Solana public key (Config Program)
         businessName: 'Healthy Eats Café',
         category: 'food',
         location: {

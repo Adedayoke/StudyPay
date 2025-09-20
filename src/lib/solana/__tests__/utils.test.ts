@@ -1,4 +1,4 @@
-import { formatCurrency, solToNaira, nairaToSol } from '@/lib/solana/utils'
+import { formatCurrency, solToNairaSync, nairaToSolSync } from '@/lib/solana/utils'
 import BigNumber from 'bignumber.js'
 
 describe('Currency Conversion Utils', () => {
@@ -28,7 +28,7 @@ describe('Currency Conversion Utils', () => {
   describe('solToNaira', () => {
     it('should convert SOL to NGN at correct rate', () => {
       const solAmount = new BigNumber(1)
-      const ngnAmount = solToNaira(solAmount)
+      const ngnAmount = solToNairaSync(solAmount)
       
       // Assuming 1 SOL ≈ ₦50,000 (adjust based on your actual rate)
       expect(ngnAmount.toNumber()).toBeGreaterThan(40000)
@@ -37,13 +37,13 @@ describe('Currency Conversion Utils', () => {
 
     it('should handle zero amounts', () => {
       const solAmount = new BigNumber(0)
-      const ngnAmount = solToNaira(solAmount)
+      const ngnAmount = solToNairaSync(solAmount)
       expect(ngnAmount.toNumber()).toBe(0)
     })
 
     it('should maintain precision for small amounts', () => {
       const solAmount = new BigNumber(0.01)
-      const ngnAmount = solToNaira(solAmount)
+      const ngnAmount = solToNairaSync(solAmount)
       expect(ngnAmount.toNumber()).toBeGreaterThan(0)
     })
   })
@@ -51,7 +51,7 @@ describe('Currency Conversion Utils', () => {
   describe('nairaToSol', () => {
     it('should convert NGN to SOL correctly', () => {
       const ngnAmount = new BigNumber(50000)
-      const solAmount = nairaToSol(ngnAmount)
+      const solAmount = nairaToSolSync(ngnAmount)
       
       // Should be approximately 1 SOL
       expect(solAmount.toNumber()).toBeCloseTo(1, 1)
@@ -59,8 +59,8 @@ describe('Currency Conversion Utils', () => {
 
     it('should be inverse of solToNaira', () => {
       const originalSol = new BigNumber(2.5)
-      const ngn = solToNaira(originalSol)
-      const backToSol = nairaToSol(ngn)
+      const ngn = solToNairaSync(originalSol)
+      const backToSol = nairaToSolSync(ngn)
       
       expect(backToSol.toNumber()).toBeCloseTo(originalSol.toNumber(), 2)
     })

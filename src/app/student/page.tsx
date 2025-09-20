@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Card, Button, Alert, Badge } from "@/components/ui";
 import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
@@ -18,8 +18,10 @@ import TransactionHistory from "@/components/transactions/TransactionHistory";
 import VendorDiscovery from "@/components/vendors/VendorDiscovery";
 import VendorProfileView from "@/components/vendors/VendorProfileView";
 import StudentInsightsDashboard from "@/components/analytics/StudentInsightsDashboard";
+import ShoppingCart from "@/components/cart/ShoppingCart";
 import { useStudentDashboard, useQRPayment } from "@/hooks/student";
 import { formatCurrency, solToNaira } from "@/lib/solana/utils";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import {
   PWAStatusIndicator,
   PWANotificationPermission,
@@ -27,6 +29,7 @@ import {
 import { BigNumber } from "bignumber.js";
 import Logo from "@/components/ui/Logo";
 import { Menu, X } from "lucide-react";
+import { cartService } from "@/lib/services/cartService";
 
 export default function StudentDashboard() {
   const { publicKey } = useWallet();
@@ -61,7 +64,30 @@ export default function StudentDashboard() {
     openScanner,
     closeScanner,
   } = useQRPayment();
-  const [navMenu, setNavMenu] = useState(false);
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [navMenu, setNavMenu] = useState(false)
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
+
+  // Update cart count
+  useEffect(() => {
+    const updateCartCount = () => {
+      setCartItemCount(cartService.getItemCount());
+    };
+
+    updateCartCount();
+    const interval = setInterval(updateCartCount, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-student-gradient">
@@ -71,8 +97,26 @@ export default function StudentDashboard() {
           <div className="flex justify-between items-center h-16">
             <Logo />
             <div className="flex items-center space-x-4">
+              {/* Cart Button */}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setActiveTab("cart")}
+                className="relative"
+              >
+                <StudyPayIcon name="cart" size={16} />
+                {cartItemCount > 0 && (
+                  <Badge
+                    variant="primary"
+                    className="absolute -top-2 -right-2 text-xs px-1 py-0 min-w-[18px] h-[18px] flex items-center justify-center"
+                  >
+                    {cartItemCount}
+                  </Badge>
+                )}
+              </Button>
+              
               {/* <PWAStatusIndicator /> */}
-              <Badge variant="success">Student</Badge>
+              {/* <Badge variant="success">Student</Badge> */}
               <WalletButton />
             </div>
           </div>
@@ -134,17 +178,14 @@ export default function StudentDashboard() {
                       🏪 Discover Vendors
                     </li>
                     <li
-                      onClick={() => setActiveTab("insights")}
+                      onClick={() => setActiveTab("cart")}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === "insights"
+                        activeTab === "cart"
                           ? "border-[#9945FF] text-[#9945FF]"
                           : "border-transparent text-gray-400 hover:text-white hover:border-gray-300"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <StudyPayIcon name="analytics" size={16} />
-                        <span>Insights</span>
-                      </div>
+                      🛒 Cart
                     </li>
                   </ul>
                 )}
@@ -202,6 +243,16 @@ export default function StudentDashboard() {
                     <StudyPayIcon name="analytics" size={16} />
                     <span>Insights</span>
                   </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab("cart")}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "cart"
+                      ? "border-[#9945FF] text-[#9945FF]"
+                      : "border-transparent text-gray-400 hover:text-white hover:border-gray-300"
+                  }`}
+                >
+                  🛒 Cart
                 </button>
               </nav>
             </div>
@@ -301,6 +352,17 @@ export default function StudentDashboard() {
               studentId={`student_${
                 publicKey?.toBase58().slice(-8) || "unknown"
               }`}
+            />
+          )}
+
+          {activeTab === "cart" && (
+            <ShoppingCart
+              onOrderPlaced={(orderId) => {
+                // Refresh transactions after order is placed
+                loadTransactions();
+                // Switch back to transactions tab to show the new order
+                setActiveTab("transactions");
+              }}
             />
           )}
 

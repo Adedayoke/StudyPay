@@ -10,10 +10,12 @@ import { Card, Button, Badge, Alert } from '@/components/ui';
 import { VendorProfile, VendorMenuItem } from '@/lib/vendors/vendorRegistry';
 import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { StudyPayIcon, CategoryIcon, StatusIcon } from '@/lib/utils/iconMap';
 import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
+import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
+import { createVendorPaymentRequest } from '@/lib/solana/payment';
 
 interface VendorProfileViewProps {
   vendor: VendorProfile;
@@ -30,8 +32,22 @@ export default function VendorProfileView({
   const [selectedAmount, setSelectedAmount] = useState<BigNumber | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMemo, setPaymentMemo] = useState('');
+  const [showPaymentExecutor, setShowPaymentExecutor] = useState(false);
   const [showQRGenerator, setShowQRGenerator] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   // Update cart count when component mounts
   useEffect(() => {
@@ -66,7 +82,7 @@ export default function VendorProfileView({
     cartService.addItem(product, vendor.id, vendor.businessName, 1);
     setSelectedAmount(product.price);
     setPaymentMemo(`${vendor.businessName}: ${product.name}`);
-    setShowQRGenerator(true);
+    setShowPaymentExecutor(true);
   };
 
   const handleCustomPayment = () => {
@@ -78,10 +94,11 @@ export default function VendorProfileView({
 
     setSelectedAmount(amount);
     setPaymentMemo(paymentMemo || `Payment to ${vendor.businessName}`);
-    setShowQRGenerator(true);
+    setShowPaymentExecutor(true);
   };
 
   const handlePaymentComplete = () => {
+    setShowPaymentExecutor(false);
     setShowQRGenerator(false);
     setSelectedAmount(null);
     setCustomAmount('');
@@ -273,16 +290,37 @@ export default function VendorProfileView({
           </div>
         </div>
         
-        <Button
-          variant="primary"
-          onClick={handleCustomPayment}
-          disabled={!connected || !customAmount || isNaN(Number(customAmount)) || Number(customAmount) <= 0 || !isOpen()}
-          className="w-full mt-4"
-        >
-          {!connected ? 'Connect Wallet to Pay' : 
-           !isOpen() ? 'Vendor Closed' :
-           'Generate Payment QR'}
-        </Button>
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="primary"
+            onClick={handleCustomPayment}
+            disabled={!connected || !customAmount || isNaN(Number(customAmount)) || Number(customAmount) <= 0 || !isOpen()}
+            className="flex-1"
+          >
+            {!connected ? 'Connect Wallet' : 
+             !isOpen() ? 'Vendor Closed' :
+             'Pay Now'}
+          </Button>
+          
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const amount = new BigNumber(customAmount);
+              if (amount.isNaN() || amount.lte(0)) {
+                alert('Please enter a valid amount');
+                return;
+              }
+              setSelectedAmount(amount);
+              setPaymentMemo(paymentMemo || `Payment to ${vendor.businessName}`);
+              setShowQRGenerator(true);
+            }}
+            disabled={!connected || !customAmount || isNaN(Number(customAmount)) || Number(customAmount) <= 0 || !isOpen()}
+            className="flex-1"
+          >
+            <StudyPayIcon name="scan" size={16} className="mr-1" />
+            QR Code
+          </Button>
+        </div>
       </Card>
 
       {/* Vendor Info */}
@@ -359,6 +397,41 @@ export default function VendorProfileView({
           </div>
         </div>
       </Card>
+
+      {/* Direct Payment Modal */}
+      {showPaymentExecutor && selectedAmount && connected && publicKey && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-dark-bg-primary rounded-lg p-6 max-w-md w-full border border-dark-border-primary">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-dark-text-primary mb-2">
+                Confirm Payment
+              </h3>
+              <div className="text-sm text-dark-text-secondary">
+                <div>Amount: {formatCurrency(selectedAmount, 'SOL')}</div>
+                <div>To: {vendor.businessName}</div>
+                <div>Description: {paymentMemo}</div>
+              </div>
+            </div>
+            
+            <PaymentExecutor
+              paymentRequest={createVendorPaymentRequest(
+                vendor.walletAddress,
+                selectedAmount,
+                paymentMemo
+              )}
+              onSuccess={(signature) => {
+                console.log('Payment successful:', signature);
+                handlePaymentComplete();
+              }}
+              onError={(error) => {
+                console.error('Payment failed:', error);
+                alert('Payment failed. Please try again.');
+              }}
+              onCancel={() => setShowPaymentExecutor(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* QR Payment Generator Modal */}
       {showQRGenerator && selectedAmount && connected && publicKey && (

@@ -5,10 +5,11 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import QrScanner from 'qr-scanner';
+import { Card, Button, Input, Alert } from '@/components/ui';
 import { PublicKey, Keypair } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Card, Button, Alert, Input } from '@/components/ui';
 import { 
   generateSolanaPayQR,
   createSolanaPayTransactionRequest,
@@ -285,82 +286,214 @@ interface SolanaPayScannerProps {
 export function SolanaPayScanner({ onPaymentDetected, onError }: SolanaPayScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [manualURL, setManualURL] = useState('');
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
 
-  const startScanning = () => {
-    setIsScanning(true);
-    // In a real implementation, would use camera scanning
-    setTimeout(() => {
-      setIsScanning(false);
-      onError?.('Camera scanning available in mobile app. Please use manual entry for now.');
-    }, 2000);
+  // Check camera permission on mount
+  useEffect(() => {
+    checkCameraPermission();
+  }, []);
+
+  const checkCameraPermission = async () => {
+    try {
+      const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      setHasPermission(result.state === 'granted');
+    } catch (err) {
+      // Fallback for browsers that don't support permissions API
+      setHasPermission(null);
+    }
   };
 
-  const handleManualEntry = () => {
-    if (!manualURL) {
-      onError?.('Please enter a Solana Pay URL or transaction request');
-      return;
+  const startScanning = async () => {
+    if (!videoRef.current) return;
+
+    setIsScanning(true);
+    setError(null);
+
+    try {
+      // Request camera permission if needed
+      if (hasPermission === false) {
+        await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment', // Use back camera on mobile
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          } 
+        });
+        setHasPermission(true);
+      }
+
+      // Initialize QR scanner
+      scannerRef.current = new QrScanner(
+        videoRef.current,
+        (result) => {
+          console.log('QR Code detected:', result.data);
+          handleQRResult(result.data);
+        },
+        {
+          onDecodeError: (err) => {
+            // Ignore decode errors, they're normal during scanning
+            console.debug('QR decode error:', err);
+          },
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment', // Prefer back camera
+        }
+      );
+
+      // Start scanning
+      await scannerRef.current.start();
+    } catch (err) {
+      console.error('Failed to start camera:', err);
+      let errorMessage = 'Failed to access camera.';
+      
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          errorMessage = 'Camera permission denied. Please enable camera access in your browser settings.';
+        } else if (err.name === 'NotFoundError') {
+          errorMessage = 'No camera found on this device.';
+        } else if (err.name === 'NotReadableError') {
+          errorMessage = 'Camera is already in use by another application.';
+        } else {
+          errorMessage = `Camera error: ${err.message}`;
+        }
+      }
+      
+      setError(errorMessage);
+      setIsScanning(false);
     }
+  };
+
+  const stopScanning = () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop();
+      scannerRef.current.destroy();
+      scannerRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  const handleQRResult = (qrData: string) => {
+    stopScanning();
+    setError(null);
 
     try {
       // Check if it's a transaction request URL (our API endpoint)
-      if (manualURL.includes('/api/pay/')) {
-        onPaymentDetected?.(manualURL);
-        setManualURL('');
+      if (qrData.includes('/api/pay/')) {
+        setSuccessMessage('Payment request detected! Processing...');
+        onPaymentDetected?.(qrData);
+        setTimeout(() => setSuccessMessage(null), 3000);
         return;
       }
 
       // Check if it's a standard Solana Pay URL
-      const url = new URL(manualURL);
+      const url = new URL(qrData);
       if (url.protocol !== 'solana:') {
-        onError?.('Invalid Solana Pay URL format');
+        setError('Invalid Solana Pay URL format. Expected solana: protocol.');
         return;
       }
-      
+
       // Validate the URL can be parsed
-      const parsed = parseSolanaPayURL(manualURL);
+      const parsed = parseSolanaPayURL(qrData);
       if (!parsed) {
-        onError?.('Unable to parse Solana Pay URL');
+        setError('Unable to parse Solana Pay URL. Please check the QR code.');
         return;
       }
-      
-      onPaymentDetected?.(manualURL);
-      setManualURL('');
+
+      setSuccessMessage('Solana Pay QR code scanned successfully!');
+      onPaymentDetected?.(qrData);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      onError?.('Invalid URL format');
+      console.error('Error processing QR result:', err);
+      setError('Invalid QR code format. Please scan a valid Solana Pay QR code.');
     }
+  };  const handleManualEntry = () => {
+    if (!manualURL.trim()) {
+      onError?.('Please enter a Solana Pay URL or transaction request');
+      return;
+    }
+
+    handleQRResult(manualURL.trim());
+    setManualURL('');
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopScanning();
+    };
+  }, []);
 
   return (
     <Card className="max-w-md mx-auto">
       <h3 className="text-lg font-semibold mb-4 text-center text-dark-text-primary">
         Scan Solana Pay QR
       </h3>
-      
+
+      {error && (
+        <Alert type="error" className="mb-4">
+          {error}
+        </Alert>
+      )}
+
+      {successMessage && (
+        <Alert type="success" className="mb-4">
+          {successMessage}
+        </Alert>
+      )}
+
       <div className="space-y-4">
         <div className="text-center">
-          <div className="bg-dark-bg-tertiary border-2 border-dashed border-dark-border-secondary rounded-lg p-8 mb-4">
-            {isScanning ? (
-              <div className="animate-pulse">
-                <div className="w-16 h-16 bg-solana-purple-500 rounded-full mx-auto mb-2 opacity-50"></div>
-                <p className="text-sm text-dark-text-secondary">Scanning...</p>
-              </div>
-            ) : (
-              <div>
-                <div className="w-16 h-16 bg-dark-bg-hover rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">
-                  📷
+          <div className="bg-dark-bg-tertiary border-2 border-dashed border-dark-border-secondary rounded-lg p-4 mb-4 relative overflow-hidden">
+            <video
+              ref={videoRef}
+              className="w-full h-48 object-cover rounded"
+              playsInline
+              muted
+              autoPlay
+              style={{ transform: 'scaleX(-1)' }} // Mirror the video for better UX
+            />
+            {!isScanning && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-dark-bg-hover rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">
+                    📷
+                  </div>
+                  <p className="text-sm text-dark-text-secondary">Camera Scanner</p>
+                  {hasPermission === false && (
+                    <p className="text-xs text-red-400 mt-1">Camera permission needed</p>
+                  )}
                 </div>
-                <p className="text-sm text-dark-text-secondary">Camera Scanner</p>
+              </div>
+            )}
+            {isScanning && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="text-center text-white">
+                  <div className="animate-pulse w-16 h-16 bg-solana-purple-500 rounded-full mx-auto mb-2"></div>
+                  <p className="text-sm">Scanning for QR codes...</p>
+                </div>
               </div>
             )}
           </div>
-          
-          <Button 
-            onClick={startScanning}
-            disabled={isScanning}
-            className="w-full mb-4"
-          >
-            {isScanning ? 'Scanning...' : 'Start Camera Scan'}
-          </Button>
+
+          <div className="flex space-x-2 mb-4">
+            <Button
+              onClick={isScanning ? stopScanning : startScanning}
+              disabled={hasPermission === false}
+              className="flex-1"
+            >
+              {isScanning ? 'Stop Scanning' : 'Start Camera Scan'}
+            </Button>
+          </div>
+
+          {hasPermission === false && (
+            <Alert type="warning" className="mb-4">
+              Camera permission is required to scan QR codes. Please enable camera access in your browser settings.
+            </Alert>
+          )}
         </div>
 
         <div className="text-center text-dark-text-muted">
@@ -374,11 +507,12 @@ export function SolanaPayScanner({ onPaymentDetected, onError }: SolanaPayScanne
             onChange={(e) => setManualURL(e.target.value)}
             placeholder="solana:... or https://studypay.app/api/pay/..."
           />
-          
-          <Button 
+
+          <Button
             onClick={handleManualEntry}
             variant="secondary"
             className="w-full"
+            disabled={!manualURL.trim()}
           >
             Process Payment
           </Button>

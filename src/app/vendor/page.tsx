@@ -11,7 +11,7 @@ import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
 import { StudyPayIcon } from "@/lib/utils/iconMap";
 import { FoodPaymentQR } from "@/components/payments/SolanaPayQR";
 import VendorAnalyticsDashboard from "@/components/analytics/VendorAnalyticsDashboard";
-import { formatCurrency, solToNaira } from "@/lib/solana/utils";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { useVendorDashboard } from "@/hooks/vendor";
 import { useVendorPayments } from "@/hooks/vendor";
 import { useVendorAnalytics } from "@/hooks/vendor";
@@ -60,6 +60,19 @@ export default function VendorDashboard() {
     peakHours,
     hasPeakHours,
   } = useVendorAnalytics(completedPayments);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   return (
     <div className="min-h-screen bg-vendor-gradient">

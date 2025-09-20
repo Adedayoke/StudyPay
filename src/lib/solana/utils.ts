@@ -164,21 +164,226 @@ export async function waitForTransactionConfirmation(
 // Currency Conversion Utilities
 // =============================================================================
 
+// =============================================================================
+// Live Price Service
+// =============================================================================
+
+interface PriceData {
+  solToNgn: number;
+  solToUsd: number;
+  lastUpdated: number;
+  isStale: boolean;
+}
+
+class PriceService {
+  private static instance: PriceService;
+  private priceData: PriceData | null = null;
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private readonly STALE_DURATION = 15 * 60 * 1000; // 15 minutes
+  private isFetching = false;
+
+  static getInstance(): PriceService {
+    if (!PriceService.instance) {
+      PriceService.instance = new PriceService();
+    }
+    return PriceService.instance;
+  }
+
+  async getPrices(): Promise<PriceData> {
+    // Return cached data if still fresh
+    if (this.priceData && !this.isStale()) {
+      return this.priceData;
+    }
+
+    // Don't fetch if already fetching
+    if (this.isFetching) {
+      // Return stale data if available, otherwise fallback
+      if (this.priceData) {
+        return { ...this.priceData, isStale: true };
+      }
+      return this.getFallbackPrices();
+    }
+
+    this.isFetching = true;
+
+    try {
+      const prices = await this.fetchPrices();
+      this.priceData = {
+        ...prices,
+        lastUpdated: Date.now(),
+        isStale: false
+      };
+      return this.priceData;
+    } catch (error) {
+      console.warn('Failed to fetch live prices:', error);
+      // Return stale data if available, otherwise fallback
+      if (this.priceData) {
+        return { ...this.priceData, isStale: true };
+      }
+      return this.getFallbackPrices();
+    } finally {
+      this.isFetching = false;
+    }
+  }
+
+  private async fetchPrices(): Promise<Omit<PriceData, 'lastUpdated' | 'isStale'>> {
+    // Try CoinGecko API first
+    try {
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,ngn'
+      );
+
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.solana || !data.solana.usd) {
+        throw new Error('Invalid CoinGecko response');
+      }
+
+      const solToUsd = data.solana.usd;
+      const solToNgn = data.solana.ngn || solToUsd * 1500; // Fallback NGN rate
+
+      return {
+        solToNgn,
+        solToUsd
+      };
+    } catch (error) {
+      console.warn('CoinGecko API failed, trying alternative API:', error);
+
+      // Try CoinMarketCap as fallback
+      try {
+        const response = await fetch(
+          'https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail/chart?id=5426&range=1D'
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const keys = Object.keys(data.data.points);
+          if (keys.length === 0) {
+            throw new Error('No price data available');
+          }
+          const latestPrice = data.data.points[keys[keys.length - 1]];
+          const solToUsd = latestPrice.v[0];
+
+          return {
+            solToNgn: solToUsd * 1500, // Approximate NGN rate
+            solToUsd
+          };
+        }
+      } catch (fallbackError) {
+        console.warn('CoinMarketCap API also failed:', fallbackError);
+      }
+
+      throw error; // Re-throw to use fallback prices
+    }
+  }
+
+  private getFallbackPrices(): PriceData {
+    // Fallback to mock rates if all APIs fail
+    console.warn('Using fallback mock prices');
+    return {
+      solToNgn: 50000, // Mock rate
+      solToUsd: 150,   // Mock rate
+      lastUpdated: Date.now(),
+      isStale: true
+    };
+  }
+
+  private isStale(): boolean {
+    if (!this.priceData) return true;
+    const age = Date.now() - this.priceData.lastUpdated;
+    return age > this.STALE_DURATION;
+  }
+
+  isCacheValid(): boolean {
+    if (!this.priceData) return false;
+    const age = Date.now() - this.priceData.lastUpdated;
+    return age < this.CACHE_DURATION;
+  }
+}
+
+// =============================================================================
+// Currency Conversion Utilities
+// =============================================================================
+
 /**
- * Convert SOL amount to Nigerian Naira (mock exchange rate for demo)
+ * Convert SOL amount to Nigerian Naira (live exchange rate)
  */
-export function solToNaira(solAmount: BigNumber): BigNumber {
-  // Mock exchange rate: 1 SOL = ₦50,000 (this would come from a real API)
-  const MOCK_SOL_TO_NGN_RATE = 50000;
-  return solAmount.multipliedBy(MOCK_SOL_TO_NGN_RATE);
+export async function solToNaira(solAmount: BigNumber): Promise<BigNumber> {
+  try {
+    const priceService = PriceService.getInstance();
+    const prices = await priceService.getPrices();
+    return solAmount.multipliedBy(prices.solToNgn);
+  } catch (error) {
+    console.warn('Using fallback conversion rate:', error);
+    // Fallback to mock rate if API fails
+    return solAmount.multipliedBy(50000);
+  }
 }
 
 /**
- * Convert Naira to SOL amount (mock exchange rate for demo)
+ * Convert SOL amount to Nigerian Naira (synchronous with cached rate)
  */
-export function nairaToSol(nairaAmount: BigNumber): BigNumber {
-  const MOCK_SOL_TO_NGN_RATE = 50000;
-  return nairaAmount.dividedBy(MOCK_SOL_TO_NGN_RATE);
+export function solToNairaSync(solAmount: BigNumber): BigNumber {
+  const priceService = PriceService.getInstance();
+
+  if (priceService.isCacheValid() && priceService['priceData']) {
+    return solAmount.multipliedBy(priceService['priceData'].solToNgn);
+  }
+
+  // Fallback to mock rate if no cached data
+  return solAmount.multipliedBy(50000);
+}
+
+/**
+ * Convert Naira to SOL amount (live exchange rate)
+ */
+export async function nairaToSol(nairaAmount: BigNumber): Promise<BigNumber> {
+  try {
+    const priceService = PriceService.getInstance();
+    const prices = await priceService.getPrices();
+    return nairaAmount.dividedBy(prices.solToNgn);
+  } catch (error) {
+    console.warn('Using fallback conversion rate:', error);
+    // Fallback to mock rate if API fails
+    return nairaAmount.dividedBy(50000);
+  }
+}
+
+/**
+ * Convert Naira to SOL amount (synchronous with cached rate)
+ */
+export function nairaToSolSync(nairaAmount: BigNumber): BigNumber {
+  const priceService = PriceService.getInstance();
+
+  if (priceService.isCacheValid() && priceService['priceData']) {
+    return nairaAmount.dividedBy(priceService['priceData'].solToNgn);
+  }
+
+  // Fallback to mock rate if no cached data
+  return nairaAmount.dividedBy(50000);
+}
+
+/**
+ * Get current SOL price information
+ */
+export async function getSolPriceInfo(): Promise<{
+  solToNgn: number;
+  solToUsd: number;
+  lastUpdated: number;
+  isStale: boolean;
+  source: string;
+}> {
+  const priceService = PriceService.getInstance();
+  const prices = await priceService.getPrices();
+
+  return {
+    ...prices,
+    source: prices.isStale ? 'cached/fallback' : 'live'
+  };
 }
 
 /**

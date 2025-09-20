@@ -1,6 +1,10 @@
 /**
  * Parent Dashboard Page
- * Interface for diaspora parents to send money to their children
+ * Interface for diaspora parents  
+
+  
+
+  // Mock data for charts and recent transfers send money to their children
  */
 
 "use client";
@@ -13,7 +17,7 @@ import {
 import ParentTransfer from "@/components/transfers/ParentTransfer";
 import StudentManagement from "@/components/transfers/StudentManagement";
 import TransactionHistory from "@/components/transactions/TransactionHistory";
-import { formatCurrency, solToNaira } from "@/lib/solana/utils";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { getMockStudentAddress } from "@/lib/solana/payment";
 import BigNumber from "bignumber.js";
 import { useParentDashboard } from "@/hooks/parent";
@@ -63,6 +67,19 @@ export default function ParentDashboard() {
     totalSentThisMonth
   } = useParentDashboard();
   const [navMenu, setNavMenu] = useState(false)
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   // Mock data for charts and recent transfers
   const spendingData = [

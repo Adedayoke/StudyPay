@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge, Alert } from '@/components/ui';
 import { orderService } from '@/lib/services/orderService';
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { Order, OrderStatus, OrderNotification } from '@/lib/types/order';
 
@@ -22,6 +22,19 @@ export default function VendorOrderDashboard({ vendorId }: VendorOrderDashboardP
   const [notifications, setNotifications] = useState<OrderNotification[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
   const [loading, setLoading] = useState(true);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   useEffect(() => {
     loadOrders();

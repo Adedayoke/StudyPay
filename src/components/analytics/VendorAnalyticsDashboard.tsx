@@ -10,7 +10,7 @@ import { Card, Button, Badge } from '@/components/ui';
 import { analyticsEngine, VendorAnalytics } from '@/lib/analytics/analyticsEngine';
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 
@@ -27,6 +27,19 @@ export default function VendorAnalyticsDashboard({
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState<'hour' | 'day' | 'week' | 'month'>('day');
   const [realTimeData, setRealTimeData] = useState<any>(null);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   useEffect(() => {
     loadAnalytics();

@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge } from '@/components/ui';
 import { analyticsEngine, StudentInsights } from '@/lib/analytics/analyticsEngine';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { VendorProfile, vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 
@@ -27,6 +27,19 @@ export default function StudentInsightsDashboard({
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'semester'>('month');
   const [showRecommendations, setShowRecommendations] = useState(true);
   const [vendors, setVendors] = useState<VendorProfile[]>([]);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   useEffect(() => {
     loadInsights();

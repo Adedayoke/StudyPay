@@ -12,10 +12,12 @@ import { orderService } from '@/lib/services/orderService';
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { ShoppingCart as CartType, CartItem } from '@/lib/types/order';
 import BigNumber from 'bignumber.js';
+import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
+import { createVendorPaymentRequest } from '@/lib/solana/payment';
 
 interface ShoppingCartProps {
   onClose?: () => void;
@@ -25,9 +27,22 @@ interface ShoppingCartProps {
 export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartProps) {
   const { connected, publicKey } = useStudyPayWallet();
   const [cart, setCart] = useState<CartType>(cartService.getCart());
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentSignature, setPaymentSignature] = useState<string | null>(null);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   useEffect(() => {
     const updateCart = () => {
@@ -58,19 +73,24 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
     // Calculate total for payment
     const total = cart.total;
 
-    // For demo purposes, we'll simulate payment completion
-    // In a real app, this would integrate with the payment system
-    setPaymentSignature(`demo_payment_${Date.now()}`);
-    setShowCheckout(true);
+    // Create real payment request
+    const paymentReq = createVendorPaymentRequest(
+      vendor.walletAddress,
+      total,
+      `Order from ${cart.items.length} items at ${vendor.businessName}`
+    );
+
+    setPaymentRequest(paymentReq);
+    setShowPayment(true);
   };
 
-  const handlePaymentComplete = () => {
-    if (!cart.vendorId || !paymentSignature) return;
+  const handlePaymentComplete = (signature: string) => {
+    if (!cart.vendorId || !signature) return;
 
     const vendor = vendorRegistry.getVendorById(cart.vendorId);
     if (!vendor) return;
 
-    // Create order
+    // Create order with real payment signature
     const order = orderService.createOrder(
       publicKey?.toBase58() || 'demo_wallet',
       'Demo Customer', // In real app, get from user profile
@@ -82,10 +102,10 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
         price: item.price,
         quantity: item.quantity,
         category: item.category,
-        specialInstructions: item.specialInstructions,
+        specialInstructions: item.specialInstructions || specialInstructions,
         estimatedPrepTime: item.estimatedPrepTime
       })),
-      paymentSignature
+      signature
     );
 
     // Clear cart
@@ -97,8 +117,8 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
       onOrderPlaced(order.id);
     }
 
-    setShowCheckout(false);
-    setPaymentSignature(null);
+    setShowPayment(false);
+    setPaymentRequest(null);
   };
 
   if (cart.items.length === 0) {
@@ -118,12 +138,12 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
     );
   }
 
-  if (showCheckout) {
+  if (showPayment && paymentRequest) {
     return (
       <Card className="p-6 bg-dark-bg-secondary border-dark-border-primary">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-dark-text-primary">Checkout</h2>
-          <Button variant="secondary" size="sm" onClick={() => setShowCheckout(false)}>
+          <h2 className="text-xl font-bold text-dark-text-primary">Complete Payment</h2>
+          <Button variant="secondary" size="sm" onClick={() => setShowPayment(false)}>
             ← Back to Cart
           </Button>
         </div>
@@ -169,25 +189,17 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
             />
           </div>
 
-          {/* Payment */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <StudyPayIcon name="alert" size={16} className="text-yellow-600" />
-              <span className="font-medium text-yellow-800">Demo Payment</span>
-            </div>
-            <p className="text-sm text-yellow-700">
-              This is a demo. In the real app, you would scan the QR code to complete payment.
-            </p>
-          </div>
-
-          <Button
-            variant="primary"
-            onClick={handlePaymentComplete}
-            className="w-full"
-            size="lg"
-          >
-            Complete Order (Demo)
-          </Button>
+          {/* Payment Executor */}
+          <PaymentExecutor
+            paymentRequest={paymentRequest}
+            onSuccess={handlePaymentComplete}
+            onError={(error) => {
+              console.error('Payment failed:', error);
+              alert(`Payment failed: ${error}`);
+              setShowPayment(false);
+            }}
+            onCancel={() => setShowPayment(false)}
+          />
         </div>
       </Card>
     );
@@ -210,7 +222,7 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
       <div className="space-y-4">
         {/* Cart Items */}
         {cart.items.map((item) => (
-          <div key={item.productId} className="flex items-center gap-4 p-4 bg-dark-bg-tertiary rounded-lg">
+          <div key={item.productId} className="flex flex-col-reverse md:flex-row md:items-center gap-4 p-4 bg-dark-bg-tertiary rounded-lg">
             <div className="flex-1">
               <h3 className="font-medium text-dark-text-primary">{item.name}</h3>
               <p className="text-sm text-dark-text-secondary">{item.description}</p>
@@ -285,7 +297,7 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
           size="lg"
           disabled={!connected || cart.items.length === 0}
         >
-          {!connected ? 'Connect Wallet to Checkout' : `Checkout (${cart.items.length} items)`}
+          {!connected ? 'Connect Wallet to Checkout' : `Pay ${formatCurrency(cart.total, 'SOL')}`}
         </Button>
 
         {cart.vendorId && (

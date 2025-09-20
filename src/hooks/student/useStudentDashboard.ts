@@ -5,7 +5,7 @@ import { Transaction } from '@/lib/types/payment';
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
 import { useStudyPayNotifications } from '@/components/pwa/PWAProvider';
 
-export type StudentTab = 'overview' | 'transactions' | 'vendors' | 'insights';
+export type StudentTab = 'overview' | 'transactions' | 'vendors' | 'insights' | 'cart';
 
 export const useStudentDashboard = () => {
   const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();

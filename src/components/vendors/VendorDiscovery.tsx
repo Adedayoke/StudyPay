@@ -12,7 +12,7 @@ import {
   VendorProfile,
   VendorSearchFilters,
 } from "@/lib/vendors/vendorRegistry";
-import { formatCurrency, solToNaira } from "@/lib/solana/utils";
+import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { StudyPayIcon, CategoryIcon } from "@/lib/utils/iconMap";
 import BigNumber from "bignumber.js";
 
@@ -32,6 +32,19 @@ export default function VendorDiscovery({
   const [searchFilters, setSearchFilters] = useState<VendorSearchFilters>({
     category: selectedCategory,
   });
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   // Load vendors on mount and filter changes
   useEffect(() => {

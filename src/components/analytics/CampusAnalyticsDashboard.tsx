@@ -9,7 +9,7 @@ import { Card, Button, Badge } from '@/components/ui';
 import { analyticsEngine, CampusAnalytics } from '@/lib/analytics/analyticsEngine';
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { transactionStorage } from '@/lib/utils/transactionStorage';
-import { formatCurrency, solToNaira } from '@/lib/solana/utils';
+import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 
@@ -23,6 +23,19 @@ export default function CampusAnalyticsDashboard({ walletAddress }: CampusAnalyt
   const [timeframe, setTimeframe] = useState<'day' | 'week' | 'month' | 'semester'>('week');
   const [realTimeData, setRealTimeData] = useState<any>(null);
   const [selectedMetric, setSelectedMetric] = useState<'transactions' | 'sales' | 'vendors' | 'students'>('transactions');
+
+  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
+
+  // Wrapper functions to maintain compatibility
+  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const formatCurrency = (amount: BigNumber, currency: string) => {
+    if (currency === 'SOL') {
+      return `${amount.toFixed(4)} SOL`;
+    } else if (currency === 'NGN') {
+      return `₦${amount.toFormat(2)}`;
+    }
+    return amount.toString();
+  };
 
   useEffect(() => {
     loadAnalytics();
