@@ -96,7 +96,8 @@ export const useParentDashboard = () => {
       const now = new Date();
       return txDate.getMonth() === now.getMonth() && 
              txDate.getFullYear() === now.getFullYear() &&
-             tx.type === 'outgoing';
+             tx.type === 'outgoing' &&
+             tx.status === 'confirmed'; // Only count confirmed transactions
     })
     .reduce((total, tx) => total.plus(tx.amount), new BigNumber(0));
 
