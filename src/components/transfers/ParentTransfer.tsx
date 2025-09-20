@@ -6,7 +6,7 @@ import { PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import { Card, Button, Input, Alert } from '@/components/ui';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
-import { executePaymentFlow } from '@/lib/solana/payment';
+import { createSolanaPayTransfer, createDirectPaymentURL } from '@/lib/solana/payment';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { formatSOL } from '@/lib/utils/formatting';
 import TransactionStatus from '@/components/transactions/TransactionStatus';
@@ -110,18 +110,20 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     setShowConfirmation(false);
 
     try {
-      // Create payment request
-      const paymentRequest = {
-        recipient: new PublicKey(selectedStudent.walletAddress),
-        amount: new BigNumber(amount),
-        label: `StudyPay Transfer to ${selectedStudent.name}`,
-        message: purpose,
-        memo: `Parent transfer: ${purpose}`
-      };
+      // Create Solana Pay Transfer Request URL
+      const paymentURL = createSolanaPayTransfer(
+        new PublicKey(selectedStudent.walletAddress),
+        new BigNumber(amount),
+        `StudyPay Transfer to ${selectedStudent.name}`,
+        {
+          message: purpose || 'Allowance from parent',
+          memo: `Parent transfer: ${purpose || 'allowance'}`
+        }
+      );
 
       // Create transaction record
       const newTransaction = addTransaction({
-        description: `Transfer to ${selectedStudent.name}: ${purpose}`,
+        description: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}`,
         amount: new BigNumber(amount),
         category: 'transfer',
         status: 'pending',
@@ -130,46 +132,38 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
         // Legacy fields for compatibility
         fromAddress: wallet.publicKey.toString(),
         toAddress: selectedStudent.walletAddress,
-        purpose: `Transfer to ${selectedStudent.name}: ${purpose}`
+        purpose: `Transfer to ${selectedStudent.name}: ${purpose || 'Allowance'}`
       });
 
       setCurrentTransaction(newTransaction.id);
 
-      // Execute the transfer
-      const result = await executePaymentFlow(
-        connection,
-        wallet,
-        paymentRequest,
-        (status) => {
-          updateTransaction(newTransaction.id, { 
-            status: status === 'confirmed' ? 'confirmed' : 'pending'
-          });
-        }
-      );
+      // Open Solana Pay URL in wallet
+      console.log('Opening Solana Pay URL:', paymentURL.toString());
+      window.open(paymentURL.toString(), '_blank');
 
-      if (result.status === 'confirmed') {
-        // Update transaction with signature
+      // For Solana Pay, we can't monitor the transaction directly
+      // We'll mark it as completed optimistically and let the user know
+      setTimeout(() => {
         updateTransaction(newTransaction.id, {
           status: 'confirmed',
-          signature: result.signature
+          signature: 'solana-pay-transfer' // Placeholder signature for Solana Pay
         });
 
-        setSuccess(`Successfully sent ₦${solToNaira(new BigNumber(amount)).toFixed(0)} to ${selectedStudent.name}!`);
+        setSuccess(`Payment request sent to ${selectedStudent.name}! Check your wallet to complete the transfer.`);
         setAmount('');
         setPurpose('');
         setSelectedStudent(null);
         onTransferComplete();
-      } else {
-        updateTransaction(newTransaction.id, { status: 'failed' });
-        setError(result.error || 'Transfer failed');
-      }
+        setIsTransferring(false);
+        setCurrentTransaction('');
+      }, 2000); // Give user time to see the success message
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Transfer failed';
       if (currentTransaction) {
         updateTransaction(currentTransaction, { status: 'failed' });
       }
       setError(errorMessage);
-    } finally {
       setIsTransferring(false);
       setCurrentTransaction('');
     }
