@@ -160,6 +160,11 @@ export class CartService {
    */
   private saveCart(): void {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return; // Silently skip saving during SSR
+      }
+
       localStorage.setItem('studypay_cart', JSON.stringify({
         ...this.cart,
         subtotal: this.cart.subtotal.toString(),
@@ -179,6 +184,11 @@ export class CartService {
    */
   private loadCart(): void {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return; // Skip loading during SSR
+      }
+
       const savedCart = localStorage.getItem('studypay_cart');
       if (savedCart) {
         const parsed = JSON.parse(savedCart);

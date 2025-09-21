@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Card, Button, Alert, Badge } from "@/components/ui";
 import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
@@ -31,7 +31,10 @@ import { cartService } from "@/lib/services/cartService";
 import { useSearchParams } from "next/navigation";
 import { vendorRegistry } from "@/lib/vendors/vendorRegistry";
 
-export default function StudentDashboard() {
+// Force dynamic rendering to avoid SSR issues with useSearchParams
+export const dynamic = 'force-dynamic';
+
+function StudentDashboardContent() {
   const { publicKey } = useWallet();
   const searchParams = useSearchParams();
 
@@ -688,5 +691,13 @@ export default function StudentDashboard() {
         />
       )}
     </div>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-student-gradient flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
+      <StudentDashboardContent />
+    </Suspense>
   );
 }

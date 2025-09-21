@@ -265,6 +265,11 @@ export class VendorRegistry {
    */
   getAllVendors(): VendorProfile[] {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return this.getInitialVendors();
+      }
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) return this.getInitialVendors();
       
@@ -304,6 +309,11 @@ export class VendorRegistry {
    */
   private saveVendors(vendors: VendorProfile[]): void {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return; // Silently skip saving during SSR
+      }
+
       const serializable = vendors.map(vendor => ({
         ...vendor,
         pricing: {

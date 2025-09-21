@@ -89,6 +89,11 @@ export class TransactionStorage {
    */
   private getCachedTransactions(walletAddress: string): Transaction[] | null {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return null;
+      }
+
       const cached = localStorage.getItem(`${CACHE_KEY}_${walletAddress}`);
       if (!cached) return null;
       
@@ -118,6 +123,11 @@ export class TransactionStorage {
    */
   private cacheTransactions(transactions: Transaction[], walletAddress: string): void {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return; // Silently skip caching during SSR
+      }
+
       const cacheData: TransactionCache = {
         transactions: transactions.map(tx => ({
           ...tx,
@@ -161,8 +171,11 @@ export class TransactionStorage {
    */
   async refreshBlockchainTransactions(walletAddress: string): Promise<Transaction[]> {
     try {
-      // Clear cache
-      localStorage.removeItem(`${CACHE_KEY}_${walletAddress}`);
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // Clear cache
+        localStorage.removeItem(`${CACHE_KEY}_${walletAddress}`);
+      }
       
       // Fetch fresh data
       return await this.getBlockchainTransactions(walletAddress);
@@ -177,6 +190,11 @@ export class TransactionStorage {
    */
   getStoredTransactions(): Transaction[] {
     try {
+      // Check if we're in a browser environment before accessing localStorage
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return [];
+      }
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) return [];
       
@@ -203,6 +221,11 @@ export class TransactionStorage {
  */
 export function saveTransactions(transactions: Transaction[]): void {
   try {
+    // Check if we're in a browser environment before accessing localStorage
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return; // Silently skip saving during SSR
+    }
+
     const serializable = transactions.map(tx => ({
       ...tx,
       amount: tx.amount.toString(),
@@ -280,7 +303,16 @@ export function deleteTransaction(id: string): void {
  * Clear all transactions
  */
 export function clearAllTransactions(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    // Check if we're in a browser environment before accessing localStorage
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return; // Silently skip during SSR
+    }
+
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing transactions:', error);
+  }
 }
 
 /**
