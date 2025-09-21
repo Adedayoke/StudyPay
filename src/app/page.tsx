@@ -34,10 +34,10 @@ export default function HomePage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="mb-6">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent">
+            {/* <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent">
               Nigeria's First
-            </h1>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            </h1> */}
+            <h2 className="text-3xl md:text-4xl font-bold from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent mb-4">
               Campus Digital Marketplace
             </h2>
             <div className="inline-flex items-center gap-2 bg-solana-purple-500/20 border border-solana-purple-400/30 rounded-full px-4 py-2 mb-6">
@@ -280,7 +280,7 @@ export default function HomePage() {
             </Alert>
           }
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <div className="flex items-center gap-3 mb-3">
                 <StudyPayIcon name="store" size={24} className="text-solana-purple-400" />
@@ -323,21 +323,41 @@ export default function HomePage() {
 
             <Card>
               <div className="flex items-center gap-3 mb-3">
-                <StudyPayIcon name="vendor" size={24} className="text-green-600" />
-                <h3 className="text-lg font-semibold text-green-600">
-                  Vendor Portal
+                <StudyPayIcon name="parent" size={24} className="text-solana-green-600" />
+                <h3 className="text-lg font-semibold text-solana-green-600">
+                  Parent Dashboard
                 </h3>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Manage your menu, receive orders, process payments, and view analytics
+                Send money instantly, track spending, set budgets, and manage allowances
               </p>
               <Button
                 variant="primary"
                 size="sm"
-                className="w-full"
-                onClick={() => window.open("/vendor", "_blank")}
+                className="w-full bg-solana-green-500 hover:bg-solana-green-600"
+                onClick={() => window.open("/parent", "_blank")}
               >
-                Vendor Dashboard
+                Parent Portal
+              </Button>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3 mb-3">
+                <StudyPayIcon name="parent" size={24} className="text-solana-green-600" />
+                <h3 className="text-lg font-semibold text-solana-green-600">
+                  Parent Dashboard
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Send money instantly, track spending, set budgets, and manage allowances
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full bg-solana-green-500 hover:bg-solana-green-600"
+                onClick={() => window.open("/parent", "_blank")}
+              >
+                Parent Portal
               </Button>
             </Card>
           </div>
