@@ -15,6 +15,7 @@ import { Search, Filter, MapPin, Clock, Star, Phone } from 'lucide-react';
 import { useDataLoader } from '@/hooks/useDataLoader';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { useRouter } from 'next/navigation';
+import AIRecommendations from '@/components/ai/AIRecommendations';
 
 export default function MarketplacePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,6 +111,15 @@ export default function MarketplacePage() {
       currentTime <= vendor.operatingHours.close;
 
     return isOpen ? "Open" : "Closed";
+  };
+
+  const getCurrentTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
+    const hour = new Date().getHours();
+
+    if (hour >= 6 && hour <= 10) return 'breakfast';
+    if (hour >= 11 && hour <= 15) return 'lunch';
+    if (hour >= 17 && hour <= 21) return 'dinner';
+    return 'snack';
   };
 
   const handleSearch = (term: string) => {
@@ -212,6 +222,17 @@ export default function MarketplacePage() {
             </Button>
           )}
         </div>
+
+        {/* AI Recommendations */}
+        {!isLoading && !searchTerm && !selectedCategory && (
+          <AIRecommendations
+            onVendorClick={(vendorId) => router.push(`/student?vendor=${vendorId}`)}
+            context={{
+              timeOfDay: getCurrentTimeOfDay(),
+              urgency: 'medium'
+            }}
+          />
+        )}
 
         {/* Loading State */}
         {isLoading && (

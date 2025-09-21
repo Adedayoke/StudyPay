@@ -43,9 +43,10 @@
 ### For Students 🎓
 1. **Discover Campus Vendors** - Browse 16+ verified vendors by category (food, transport, books, services)
 2. **Smart Ordering** - Real-time menus with availability, prep times, and SOL pricing
-3. **Instant Payments** - QR code payments that settle in 30 seconds
-4. **Spending Insights** - Track expenses by category with AI-powered recommendations
-5. **Offline Access** - Full functionality without internet connectivity
+3. **AI Recommendations** - Get personalized vendor suggestions based on your spending habits
+4. **Instant Payments** - QR code payments that settle in 30 seconds
+5. **Budget Intelligence** - AI-powered spending insights and budget optimization
+6. **Offline Access** - Full functionality without internet connectivity
 
 ### For Parents 👨‍👩‍👧‍👦
 1. **Instant Transfers** - Send money from London to Lagos in 30 seconds ($0.50 fee vs $45)
@@ -72,7 +73,7 @@
 
 ## 🎪 **Live Demo: Complete Ecosystem**
 
-**🔗 Experience the full marketplace:** [studypay.vercel.app](https://studypay-sable.vercel.app)
+**🔗 Experience the full marketplace:** [studypay-sable.vercel.app](https://studypay-sable.vercel.app)
 
 ### ✅ **Real Solana Pay Integration**
 - **Official Protocol**: Full compliance with Solana Pay specification
@@ -87,6 +88,12 @@
 - **Smart Search & Filter**: Category-based discovery (food, transport, books, services)
 - **Order Management**: Complete cart → checkout → tracking workflow
 - **Real-Time Updates**: Live vendor status, menu changes, and availability
+
+### ✅ **AI-Powered Intelligence** 🤖
+- **Smart Vendor Recommendations**: Rule-based AI suggests personalized vendors based on time, location, budget, and spending history
+- **Budget AI Assistant**: Intelligent spending monitoring with predictive alerts and optimization suggestions
+- **Personalized Experience**: AI analyzes transaction patterns to provide tailored recommendations
+- **Confidence Scoring**: Each AI recommendation includes confidence levels and reasoning
 
 ### ✅ **Production-Ready Features**
 - **Progressive Web App**: Installable, offline-capable mobile experience
@@ -180,6 +187,27 @@ const order = orderService.createOrder(
 // Complete order lifecycle with notifications
 ```
 
+### **AI Intelligence Engine**
+```typescript
+// Smart Vendor Recommendations
+const recommendations = await aiService.generateVendorRecommendations(
+  studentId,
+  transactions,
+  currentTime,
+  budget,
+  location
+);
+// Returns personalized vendor suggestions with confidence scores
+
+// Budget Analysis & Predictions
+const budgetInsights = await aiService.generateBudgetPrediction(
+  studentId,
+  transactions,
+  'week'
+);
+// Provides spending predictions and optimization suggestions
+```
+
 ### **Technology Stack**
 - **Frontend**: Next.js 14, React 18, TypeScript 5.0
 - **Blockchain**: Solana Pay SDK, Web3.js, SPL Token
@@ -234,6 +262,7 @@ npm run dev
 - **✅ User Research**: Based on UNILAG student/vendor/parent validation
 - **✅ Multi-University Potential**: Scalable architecture for Nigerian universities
 - **✅ Complete Ecosystem**: Marketplace + Payments + Analytics + PWA
+- **✅ AI Intelligence**: Smart recommendations and budget assistance
 
 ### ✅ **Technical Excellence (100% Complete)**
 - **✅ Production-Ready**: Enterprise architecture with zero errors
@@ -250,6 +279,7 @@ npm run dev
 - **Production Architecture**: 9 custom hooks, enterprise patterns
 - **Real Blockchain**: Actual Solana Pay integration (not mockups)
 - **PWA Ready**: Offline capabilities, push notifications
+- **AI Intelligence**: Rule-based recommendation engine
 
 ### **📱 Complete Marketplace Ecosystem**
 - **16+ Campus Vendors**: Authentic UNILAG businesses with real data
@@ -283,6 +313,7 @@ npm run dev
 - 📊 **Analytics Dashboard**: Real-time insights for all users
 - 🔔 **Push Notifications**: Order and payment alerts
 - 🛒 **Order System**: Complete cart and checkout flow
+- 🤖 **AI Intelligence**: Smart vendor recommendations and budget assistance
 
 ---
 
@@ -328,7 +359,7 @@ While other submissions might have basic Solana Pay integration, StudyPay delive
 
 ## 🎪 **Live Demo Features**
 
-**🔗 Try it now:** [studypay.vercel.app](https://studypay-sable.vercel.app)
+**🔗 Try it now:** [studypay-sable.vercel.app](https://studypay-sable.vercel.app)
 
 ### ✅ **Real Blockchain Payments**
 - Actual SOL transfers on Solana network
@@ -409,6 +440,13 @@ Three complete dashboards (Student/Parent/Vendor) with mobile-optimized payment 
 - ✅ Offline transaction queuing
 - ✅ Mobile wallet integration
 - ✅ Background sync capabilities
+
+### **AI Intelligence Features**
+- ✅ **Rule-Based Recommendations**: Smart vendor suggestions without complex ML
+- ✅ **Budget Analysis Engine**: Spending pattern recognition and predictions
+- ✅ **Personalization**: Transaction history analysis for tailored suggestions
+- ✅ **Confidence Scoring**: Transparency in AI decision-making
+- ✅ **Real-Time Adaptation**: Dynamic recommendations based on current context
 
 ### **Technology Stack**
 - **Frontend**: Next.js 14, React 18, TypeScript
@@ -506,6 +544,8 @@ npm run dev
 - ✅ **TypeScript Compliance**: All components now compile without errors
 - ✅ **Order Management**: Complete order tracking and vendor notification system
 - ✅ **Marketplace**: Functional vendor discovery with category filtering
+- ✅ **AI Implementation**: Smart vendor recommendations and budget assistant integrated
+- ✅ **Build System**: Successful compilation with zero errors
 
 ### **Ready for Demo Features**
 - 🔗 **Live Marketplace**: Browse 16+ verified campus vendors
@@ -513,6 +553,7 @@ npm run dev
 - ⚡ **Instant Payments**: Real Solana Pay integration
 - 📊 **Order Tracking**: Complete order lifecycle management
 - 🔔 **Notifications**: Real-time vendor and customer alerts
+- 🤖 **AI Intelligence**: Smart recommendations and budget assistance
 
 ---
 

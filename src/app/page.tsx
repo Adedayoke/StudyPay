@@ -37,7 +37,7 @@ export default function HomePage() {
             {/* <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent">
               Nigeria's First
             </h1> */}
-            <h2 className="text-3xl md:text-4xl font-bold from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent mb-4">
               Campus Digital Marketplace
             </h2>
             <div className="inline-flex items-center gap-2 bg-solana-purple-500/20 border border-solana-purple-400/30 rounded-full px-4 py-2 mb-6">
@@ -343,21 +343,21 @@ export default function HomePage() {
 
             <Card>
               <div className="flex items-center gap-3 mb-3">
-                <StudyPayIcon name="parent" size={24} className="text-solana-green-600" />
-                <h3 className="text-lg font-semibold text-solana-green-600">
-                  Parent Dashboard
+                <StudyPayIcon name="vendor" size={24} className="text-yellow-600" />
+                <h3 className="text-lg font-semibold text-yellow-600">
+                  Vendor Dashboard
                 </h3>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Send money instantly, track spending, set budgets, and manage allowances
+                Manage your business, receive orders, track sales, and get paid instantly
               </p>
               <Button
                 variant="primary"
                 size="sm"
-                className="w-full bg-solana-green-500 hover:bg-solana-green-600"
-                onClick={() => window.open("/parent", "_blank")}
+                className="w-full"
+                onClick={() => window.open("/vendor", "_blank")}
               >
-                Parent Portal
+                Vendor Portal
               </Button>
             </Card>
           </div>
