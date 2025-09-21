@@ -4,131 +4,85 @@ import { transactionStorage } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
 import { VendorProfile } from '@/lib/vendors/vendorRegistry';
 import { useStudyPayNotifications } from '@/components/pwa/PWAProvider';
+import { useDashboard } from '../useDashboard';
+import { useTransactionManager } from '../useTransactionManager';
+import { useCurrencyFormatter } from '../useCurrencyFormatter';
 
 export type StudentTab = 'overview' | 'transactions' | 'vendors' | 'insights' | 'cart';
 
 export const useStudentDashboard = () => {
-  const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
+  // Use extracted hooks
+  const dashboard = useDashboard<StudentTab>('overview');
+  const transactionManager = useTransactionManager(dashboard.publicKey);
+  const currencyFormatter = useCurrencyFormatter();
+
   const { sendPaymentNotification, sendLowBalanceNotification } = useStudyPayNotifications();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [refreshingBlockchain, setRefreshingBlockchain] = useState(false);
-  const [activeTab, setActiveTab] = useState<StudentTab>('overview');
   const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
 
-  // Load transactions (blockchain + local)
-  useEffect(() => {
-    if (connected && publicKey) {
-      loadTransactions();
-    }
-  }, [connected, publicKey]);
-
-  const loadTransactions = async () => {
-    if (!publicKey) return;
-    
-    setTransactionsLoading(true);
-    try {
-      console.log('Loading transactions for wallet:', publicKey.toString());
-      
-      // Get both blockchain and local transactions
-      const allTransactions = await transactionStorage.getAllTransactions(publicKey.toString());
-      
-      console.log(`Loaded ${allTransactions.length} total transactions`);
-      setTransactions(allTransactions);
-      
-    } catch (error) {
-      console.error('Error loading transactions:', error);
-      // Fallback to local transactions only
-      const localTransactions = transactionStorage.getStoredTransactions();
-      setTransactions(localTransactions);
-    } finally {
-      setTransactionsLoading(false);
-    }
-  };
-
-  // Refresh blockchain transactions manually
-  const refreshBlockchainTransactions = async () => {
-    if (!publicKey) return;
-    
-    setRefreshingBlockchain(true);
-    try {
-      console.log('Refreshing blockchain transactions...');
-      await transactionStorage.refreshBlockchainTransactions(publicKey.toString());
-      await loadTransactions();
-    } catch (error) {
-      console.error('Error refreshing blockchain transactions:', error);
-    } finally {
-      setRefreshingBlockchain(false);
-    }
-  };
-
+  // Vendor management functions
   const handleVendorSelect = (vendor: VendorProfile) => {
     setSelectedVendor(vendor);
-    setActiveTab('vendors');
+    dashboard.setActiveTab('vendors');
   };
 
   const handleVendorClose = () => {
     setSelectedVendor(null);
   };
 
+  // Refresh after payment with notifications
   const refreshAfterPayment = async () => {
-    const previousBalance = balance;
-    await refreshBalance();
-    await loadTransactions();
-    
+    const previousBalance = dashboard.balance;
+    await dashboard.refreshBalance();
+    await transactionManager.refreshTransactions();
+
     // Check for low balance after payment
-    const newBalance = balance; // This will be updated after refreshBalance
-    if (newBalance < 0.1 && newBalance > 0) {
+    const newBalance = dashboard.balance;
+    if (newBalance.lt(0.1) && newBalance.gt(0)) {
       sendLowBalanceNotification(`${newBalance.toFixed(3)} SOL`);
     }
   };
 
   // Enhanced transaction loading with notification support
   const loadTransactionsWithNotifications = async () => {
-    const previousTransactionCount = transactions.length;
-    await loadTransactions();
-    
+    const previousTransactionCount = transactionManager.transactions.length;
+    await transactionManager.loadTransactions();
+
     // Check for new incoming transactions
-    if (transactions.length > previousTransactionCount) {
-      const newTransactions = transactions.slice(0, transactions.length - previousTransactionCount);
-      
-      for (const tx of newTransactions) {
-        if (tx.type === 'incoming' && tx.status === 'confirmed') {
-          sendPaymentNotification('received', `${tx.amount} SOL`);
-        }
+    const newTransactions = transactionManager.transactions.slice(0, transactionManager.transactions.length - previousTransactionCount);
+
+    for (const tx of newTransactions) {
+      if (tx.type === 'incoming' && tx.status === 'confirmed') {
+        sendPaymentNotification('received', `${tx.amount} SOL`);
       }
     }
   };
 
   return {
-    // Wallet state
-    balance,
-    connected,
-    publicKey,
-    refreshBalance,
-    
-    // Transaction state
-    transactions,
-    transactionsLoading,
-    refreshingBlockchain,
-    loadTransactions,
-    refreshBlockchainTransactions,
-    
-    // Tab management
-    activeTab,
-    setActiveTab,
-    
+    // Dashboard state
+    ...dashboard,
+
+    // Transaction management
+    transactions: transactionManager.transactions,
+    transactionsLoading: transactionManager.isLoading,
+    refreshingBlockchain: transactionManager.isRefreshing,
+    loadTransactions: transactionManager.loadTransactions,
+    refreshBlockchainTransactions: transactionManager.refreshTransactions,
+
+    // Currency formatting
+    ...currencyFormatter,
+
     // Vendor management
     selectedVendor,
     handleVendorSelect,
     handleVendorClose,
-    
+
     // Payment handling
     refreshAfterPayment,
-    
+    loadTransactionsWithNotifications,
+
     // Computed values
-    recentTransactions: transactions.slice(0, 3),
-    hasTransactions: transactions.length > 0,
-    isLowBalance: balance < 0.1
+    recentTransactions: transactionManager.transactions.slice(0, 3),
+    hasTransactions: transactionManager.transactions.length > 0,
+    isLowBalance: dashboard.balance.lt(0.1)
   };
 };

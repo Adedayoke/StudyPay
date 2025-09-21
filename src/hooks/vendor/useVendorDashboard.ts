@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import BigNumber from 'bignumber.js';
+import { useDashboard } from '../useDashboard';
+import { useCurrencyFormatter } from '../useCurrencyFormatter';
 
 // Mock vendor info
 const vendorInfo = {
@@ -43,8 +45,10 @@ export interface Sale {
 }
 
 export const useVendorDashboard = () => {
-  const { balance, connected, publicKey } = useStudyPayWallet();
-  const [activeTab, setActiveTab] = useState<VendorTab>('overview');
+  // Use extracted hooks
+  const dashboard = useDashboard<VendorTab>('overview');
+  const currencyFormatter = useCurrencyFormatter();
+
   const [activePayments, setActivePayments] = useState<number>(0);
   const [completedPayments, setCompletedPayments] = useState<Sale[]>(todaysSalesData);
 
@@ -84,32 +88,29 @@ export const useVendorDashboard = () => {
   const recentSales = completedPayments.slice(0, 5);
 
   return {
-    // Wallet state
-    balance,
-    connected,
-    publicKey,
-    
+    // Dashboard state
+    ...dashboard,
+
+    // Currency formatting
+    ...currencyFormatter,
+
     // Vendor info
     vendorInfo,
     vendorProfile,
-    
-    // Tab management
-    activeTab,
-    setActiveTab,
-    
+
     // Payment state
     activePayments,
     setActivePayments,
     completedPayments,
     setCompletedPayments,
     handlePaymentComplete,
-    
+
     // Computed values
     totalToday,
     salesCount,
     averageSale,
     recentSales,
     hasCompletedPayments: completedPayments.length > 0,
-    isActive: connected && publicKey
+    isActive: dashboard.connected && dashboard.publicKey
   };
 };

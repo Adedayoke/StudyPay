@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Input, Alert, Badge } from '@/components/ui';
-import { formatSOL, formatRelativeTime } from '@/lib/utils/formatting';
+import { formatRelativeTime } from '@/lib/utils/formatting';
 import BigNumber from 'bignumber.js';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 
 interface Student {
   id: string;
@@ -40,9 +41,7 @@ export default function StudentManagement({
   });
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const currencyFormatter = useCurrencyFormatter();
   const [error, setError] = useState<string>('');
 
   const validateWalletAddress = (address: string): boolean => {
@@ -141,7 +140,7 @@ export default function StudentManagement({
                         University: <span className="text-white">{student.university}</span>
                       </div>
                       <div className="text-gray-400">
-                        Balance: <span className="text-white font-mono">₦{solToNaira(student.currentBalance).toFixed(0)}</span>
+                        Balance: <span className="text-white font-mono">₦{currencyFormatter.solToNaira(student.currentBalance).toFixed(0)}</span>
                       </div>
                       <div className="text-gray-400">
                         Wallet: <span className="text-white font-mono text-xs">
@@ -193,7 +192,7 @@ export default function StudentManagement({
                           <div className="text-sm">
                             <span className="text-gray-400">Monthly limit: </span>
                             <span className="text-white">
-                              {student.monthlyLimit ? `₦${solToNaira(student.monthlyLimit).toFixed(0)}` : 'No limit set'}
+                              {student.monthlyLimit ? `₦${currencyFormatter.solToNaira(student.monthlyLimit).toFixed(0)}` : 'No limit set'}
                             </span>
                           </div>
                           <Button
@@ -213,7 +212,7 @@ export default function StudentManagement({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-400">Total received:</span>
-                            <div className="font-mono text-white">₦{solToNaira(student.totalReceived).toFixed(0)}</div>
+                            <div className="font-mono text-white">₦{currencyFormatter.solToNaira(student.totalReceived).toFixed(0)}</div>
                           </div>
                           <div>
                             <span className="text-gray-400">This month:</span>

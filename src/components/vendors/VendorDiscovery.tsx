@@ -13,6 +13,7 @@ import {
   VendorSearchFilters,
 } from "@/lib/vendors/vendorRegistry";
 import { usePriceConversion } from "@/hooks/usePriceConversion";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { StudyPayIcon, CategoryIcon } from "@/lib/utils/iconMap";
 import BigNumber from "bignumber.js";
 
@@ -34,17 +35,7 @@ export default function VendorDiscovery({
   });
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
+  const currencyFormatter = useCurrencyFormatter();
 
   // Load vendors on mount and filter changes
   useEffect(() => {
@@ -269,10 +260,10 @@ export default function VendorDiscovery({
                             <StudyPayIcon name="coins" className="inline h-4 w-4" />
                             <span>
                               ~
-                              ₦{solToNaira(vendor.pricing.averageOrderValue).toFixed(0)}
+                              ₦{currencyFormatter.solToNaira(vendor.pricing.averageOrderValue).toFixed(0)}
                             </span>
                             <span className="text-dark-text-muted">
-                              (≈ {formatCurrency(vendor.pricing.averageOrderValue, "SOL")})
+                              (≈ {currencyFormatter.formatCurrency(vendor.pricing.averageOrderValue, "SOL")})
                             </span>
                           </div>
                         )}

@@ -8,10 +8,9 @@ import { Card, Button, Input, Alert } from '@/components/ui';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { createSolanaPayTransfer, executePaymentFlow } from '@/lib/solana/payment';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
-import { formatSOL } from '@/lib/utils/formatting';
-import { nairaToSolSync, formatCurrency } from '@/lib/solana/utils';
 import TransactionStatus from '@/components/transactions/TransactionStatus';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 
 interface Student {
   id: string;
@@ -36,9 +35,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
   const [purpose, setPurpose] = useState<string>('');
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const currencyFormatter = useCurrencyFormatter();
   const [isTransferring, setIsTransferring] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -69,7 +66,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
   const getQuickAmounts = () => {
     const nairaAmounts = [10000, 25000, 50000, 100000];
     return nairaAmounts.map(naira => {
-      const solAmount = nairaToSolSync(new BigNumber(naira));
+      const solAmount = currencyFormatter.nairaToSol(new BigNumber(naira));
       return {
         label: `₦${naira.toLocaleString()}`,
         naira: naira.toString(),
@@ -103,7 +100,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
     }
 
     // Convert Naira amount to SOL for balance check
-    const solAmount = nairaToSolSync(new BigNumber(amount));
+    const solAmount = currencyFormatter.nairaToSol(new BigNumber(amount));
     if (solAmount.gt(wallet.balance)) {
       setError('Insufficient balance for this transfer');
       return false;
@@ -131,7 +128,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
 
     try {
       // Convert Naira amount to SOL for payment processing
-      const solAmount = nairaToSolSync(new BigNumber(amount));
+      const solAmount = currencyFormatter.nairaToSol(new BigNumber(amount));
 
       // Create transaction record (store SOL amount for transaction history)
       const newTransaction = addTransaction({
@@ -216,7 +213,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
             signature: result.signature
           });
 
-          setSuccess(`Successfully sent ₦${solToNaira(new BigNumber(amount)).toFixed(0)} to ${selectedStudent.name}!`);
+          setSuccess(`Successfully sent ₦${currencyFormatter.solToNaira(new BigNumber(amount)).toFixed(0)} to ${selectedStudent.name}!`);
           setAmount('');
           setPurpose('');
           setSelectedStudent(null);
@@ -260,7 +257,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
                   <div className="font-medium text-white">{student.name}</div>
                   <div className="text-sm text-gray-400">{student.university}</div>
                   <div className="text-xs text-gray-500">
-                    Balance: ₦{solToNaira(student.currentBalance).toFixed(0)}
+                    Balance: ₦{currencyFormatter.solToNaira(student.currentBalance).toFixed(0)}
                   </div>
                 </div>
                 <div className="text-right">
@@ -306,7 +303,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
                   className="p-3 border border-[#333] rounded-lg hover:border-[#9945FF] transition-colors text-left"
                 >
                   <div className="text-white font-medium">{preset.label}</div>
-                  <div className="text-sm text-gray-400">≈ {formatCurrency(new BigNumber(preset.sol), 'SOL')} ({preset.usd})</div>
+                  <div className="text-sm text-gray-400">≈ {currencyFormatter.formatCurrency(new BigNumber(preset.sol), 'SOL')} ({preset.usd})</div>
                 </button>
               ))}
             </div>
@@ -327,7 +324,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
             />
             {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
               <div className="text-sm text-gray-400 mt-1">
-                ≈ {formatCurrency(nairaToSolSync(new BigNumber(amount)), 'SOL')}
+                ≈ {currencyFormatter.formatCurrency(currencyFormatter.nairaToSol(new BigNumber(amount)), 'SOL')}
               </div>
             )}
           </div>
@@ -388,7 +385,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">SOL Equivalent:</span>
-                <span className="text-gray-300 font-mono">{formatCurrency(nairaToSolSync(new BigNumber(amount)), 'SOL')}</span>
+                <span className="text-gray-300 font-mono">{currencyFormatter.formatCurrency(currencyFormatter.nairaToSol(new BigNumber(amount)), 'SOL')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Purpose:</span>

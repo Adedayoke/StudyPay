@@ -38,6 +38,11 @@ export default function VendorDashboard() {
     recentSales,
     hasCompletedPayments,
     isActive,
+    // Currency formatting functions
+    solToNaira,
+    formatCurrency,
+    formatNaira,
+    formatSol
   } = useVendorDashboard();
 
   const {
@@ -60,19 +65,6 @@ export default function VendorDashboard() {
     peakHours,
     hasPeakHours,
   } = useVendorAnalytics(completedPayments);
-
-  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
 
   return (
     <div className="min-h-screen bg-vendor-gradient">

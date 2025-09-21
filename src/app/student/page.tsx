@@ -20,8 +20,6 @@ import VendorProfileView from "@/components/vendors/VendorProfileView";
 import StudentInsightsDashboard from "@/components/analytics/StudentInsightsDashboard";
 import ShoppingCart from "@/components/cart/ShoppingCart";
 import { useStudentDashboard, useQRPayment } from "@/hooks/student";
-import { formatCurrency, solToNaira } from "@/lib/solana/utils";
-import { usePriceConversion } from "@/hooks/usePriceConversion";
 import {
   PWAStatusIndicator,
   PWANotificationPermission,
@@ -30,9 +28,12 @@ import { BigNumber } from "bignumber.js";
 import Logo from "@/components/ui/Logo";
 import { Menu, X } from "lucide-react";
 import { cartService } from "@/lib/services/cartService";
+import { useSearchParams } from "next/navigation";
+import { vendorRegistry } from "@/lib/vendors/vendorRegistry";
 
 export default function StudentDashboard() {
   const { publicKey } = useWallet();
+  const searchParams = useSearchParams();
 
   const {
     balance,
@@ -52,6 +53,11 @@ export default function StudentDashboard() {
     recentTransactions,
     hasTransactions,
     isLowBalance,
+    // Currency formatting functions
+    solToNaira,
+    formatCurrency,
+    formatNaira,
+    formatSol
   } = useStudentDashboard();
 
   const {
@@ -64,19 +70,8 @@ export default function StudentDashboard() {
     openScanner,
     closeScanner,
   } = useQRPayment();
-  const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
   const [cartItemCount, setCartItemCount] = useState(0);
   const [navMenu, setNavMenu] = useState(false)
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
 
   // Update cart count
   useEffect(() => {
@@ -88,6 +83,32 @@ export default function StudentDashboard() {
     const interval = setInterval(updateCartCount, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Handle URL parameters for vendor navigation
+  useEffect(() => {
+    const vendorId = searchParams.get('vendorId');
+    const vendorsParam = searchParams.get('vendors');
+
+    if (vendorId && vendorsParam === 'true') {
+      // Switch to vendors tab
+      setActiveTab('vendors');
+
+      // Find and select the vendor
+      const loadVendor = async () => {
+        try {
+          const vendors = await vendorRegistry.getAllVendors();
+          const vendor = vendors.find(v => v.id === vendorId);
+          if (vendor) {
+            handleVendorSelect(vendor);
+          }
+        } catch (error) {
+          console.error('Error loading vendor from URL:', error);
+        }
+      };
+
+      loadVendor();
+    }
+  }, [searchParams, setActiveTab, handleVendorSelect]);
 
   return (
     <div className="min-h-screen bg-student-gradient">
@@ -427,7 +448,7 @@ export default function StudentDashboard() {
           )}
 
           {/* Low Balance Alert */}
-          {balance < 0.1 && (
+          {balance.lt(0.1) && (
             <Alert type="warning" className="mb-6" title="Low Balance">
               Your balance is running low. Consider requesting money from your
               parents or guardian to continue making campus payments.

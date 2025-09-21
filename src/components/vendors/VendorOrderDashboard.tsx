@@ -10,8 +10,10 @@ import { Card, Button, Badge, Alert } from '@/components/ui';
 import { orderService } from '@/lib/services/orderService';
 import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { Order, OrderStatus, OrderNotification } from '@/lib/types/order';
+import BigNumber from 'bignumber.js';
 
 interface VendorOrderDashboardProps {
   vendorId: string;
@@ -24,17 +26,7 @@ export default function VendorOrderDashboard({ vendorId }: VendorOrderDashboardP
   const [loading, setLoading] = useState(true);
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
+  const currencyFormatter = useCurrencyFormatter();
 
   useEffect(() => {
     loadOrders();
@@ -212,10 +204,10 @@ export default function VendorOrderDashboard({ vendorId }: VendorOrderDashboardP
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-dark-text-primary">
-                      ₦{solToNaira(order.total).toFixed(0)}
+                      ₦{currencyFormatter.solToNaira(order.total).toFixed(0)}
                     </div>
                     <div className="text-xs text-dark-text-secondary">
-                      ≈ {formatCurrency(order.total, 'SOL')}
+                      ≈ {currencyFormatter.formatCurrency(order.total, 'SOL')}
                     </div>
                   </div>
                 </div>

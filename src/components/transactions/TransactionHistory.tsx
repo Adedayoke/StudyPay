@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types/payment';
-import { formatSOL } from '@/lib/utils/formatting';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import TransactionReceipt from './TransactionReceipt';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import BigNumber from 'bignumber.js';
 
 interface TransactionHistoryProps {
@@ -22,9 +22,7 @@ export default function TransactionHistory({
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const currencyFormatter = useCurrencyFormatter();
 
   const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
@@ -152,7 +150,7 @@ export default function TransactionHistory({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-medium">
-                          ₦{solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
+                          ₦{currencyFormatter.solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
                         </span>
                         <span className={`text-sm ${getStatusColor(transaction.status)}`}>
                           {transaction.status}
@@ -203,7 +201,7 @@ export default function TransactionHistory({
               
               <div className="bg-[#2D2D2D] rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-[#9945FF]">
-                  ₦{solToNaira(
+                  ₦{currencyFormatter.solToNaira(
                     sortedTransactions
                       .filter(tx => tx.status === 'confirmed' || tx.status === 'finalized')
                       .reduce((sum, tx) => sum.plus(tx.amount), new BigNumber(0))

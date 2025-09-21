@@ -13,6 +13,7 @@ import { vendorRegistry } from '@/lib/vendors/vendorRegistry';
 import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { ShoppingCart as CartType, CartItem } from '@/lib/types/order';
 import BigNumber from 'bignumber.js';
@@ -33,17 +34,7 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
+  const currencyFormatter = useCurrencyFormatter();
 
   // Device detection for optimal payment method
   const isMobile = typeof window !== 'undefined' && (
@@ -219,24 +210,24 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
               {cart.items.map((item) => (
                 <div key={item.productId} className="flex justify-between text-sm">
                   <span>{item.name} × {item.quantity}</span>
-                  <span>₦{solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}</span>
+                  <span>₦{currencyFormatter.solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}</span>
                 </div>
               ))}
               <hr className="border-dark-border-secondary" />
               <div className="flex justify-between font-medium">
                 <span>Subtotal</span>
-                <span>₦{solToNaira(cart.subtotal).toFixed(0)}</span>
+                <span>₦{currencyFormatter.solToNaira(cart.subtotal).toFixed(0)}</span>
               </div>
               <div className="flex justify-between text-sm text-dark-text-secondary">
                 <span>Service Fee (2%)</span>
-                <span>₦{solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
+                <span>₦{currencyFormatter.solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>₦{solToNaira(cart.total).toFixed(0)}</span>
+                <span>₦{currencyFormatter.solToNaira(cart.total).toFixed(0)}</span>
               </div>
               <div className="text-xs text-dark-text-secondary text-right mt-1">
-                ≈ {formatCurrency(cart.total, 'SOL')}
+                ≈ {currencyFormatter.formatCurrency(cart.total, 'SOL')}
               </div>
             </div>
           </div>
@@ -330,10 +321,10 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
             </div>
             <div className="text-right">
               <div className="font-semibold text-dark-text-primary">
-                ₦{solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}
+                ₦{currencyFormatter.solToNaira(item.price.multipliedBy(item.quantity)).toFixed(0)}
               </div>
               <div className="text-xs text-dark-text-secondary">
-                ₦{solToNaira(item.price).toFixed(0)} each
+                ₦{currencyFormatter.solToNaira(item.price).toFixed(0)} each
               </div>
             </div>
           </div>
@@ -345,19 +336,19 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Subtotal ({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-              <span>₦{solToNaira(cart.subtotal).toFixed(0)}</span>
+              <span>₦{currencyFormatter.solToNaira(cart.subtotal).toFixed(0)}</span>
             </div>
             <div className="flex justify-between text-sm text-dark-text-secondary">
               <span>Service Fee (2%)</span>
-              <span>₦{solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
+              <span>₦{currencyFormatter.solToNaira(cart.subtotal.multipliedBy(0.02)).toFixed(0)}</span>
             </div>
             <hr className="border-dark-border-secondary" />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span>₦{solToNaira(cart.total).toFixed(0)}</span>
+              <span>₦{currencyFormatter.solToNaira(cart.total).toFixed(0)}</span>
             </div>
             <div className="text-xs text-dark-text-secondary text-center">
-              ≈ {formatCurrency(cart.total, 'SOL')}
+              ≈ {currencyFormatter.formatCurrency(cart.total, 'SOL')}
             </div>
           </div>
         </div>
@@ -371,7 +362,7 @@ export default function ShoppingCart({ onClose, onOrderPlaced }: ShoppingCartPro
             size="lg"
             disabled={!connected || cart.items.length === 0}
           >
-            {!connected ? 'Connect Wallet to Checkout' : `Pay ₦${solToNaira(cart.total).toFixed(0)}`}
+            {!connected ? 'Connect Wallet to Checkout' : `Pay ₦${currencyFormatter.solToNaira(cart.total).toFixed(0)}`}
           </Button>
 
           {connected && cart.items.length > 0 && (

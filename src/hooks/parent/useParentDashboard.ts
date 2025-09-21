@@ -4,6 +4,9 @@ import { getTransactionsForAddress } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
 import { getMockStudentAddress } from '@/lib/solana/payment';
 import BigNumber from 'bignumber.js';
+import { useDashboard } from '../useDashboard';
+import { useTransactionManager } from '../useTransactionManager';
+import { useCurrencyFormatter } from '../useCurrencyFormatter';
 
 interface Student {
   id: string;
@@ -35,40 +38,14 @@ const initialStudents: Student[] = [
 export type ParentTab = "overview" | "transfer" | "students" | "history";
 
 export const useParentDashboard = () => {
-  const { balance, connected, publicKey, refreshBalance } = useStudyPayWallet();
+  // Use extracted hooks
+  const dashboard = useDashboard<ParentTab>("overview");
+  const transactionManager = useTransactionManager(dashboard.publicKey);
+  const currencyFormatter = useCurrencyFormatter();
+
   const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<ParentTab>("overview");
 
-  // Load transactions for current wallet
-  useEffect(() => {
-    if (publicKey) {
-      setTransactionsLoading(true);
-      try {
-        const parentTransactions = getTransactionsForAddress(
-          publicKey.toString()
-        );
-        setTransactions(parentTransactions);
-      } catch (error) {
-        console.error("Error loading transactions:", error);
-      } finally {
-        setTransactionsLoading(false);
-      }
-    }
-  }, [publicKey]);
-
-  // Refresh data after transfers
-  const handleTransferComplete = () => {
-    refreshBalance();
-    if (publicKey) {
-      const parentTransactions = getTransactionsForAddress(
-        publicKey.toString()
-      );
-      setTransactions(parentTransactions);
-    }
-  };
-
+  // Student management functions
   const handleStudentAdded = (newStudent: Omit<Student, "id" | "isActive">) => {
     const student: Student = {
       ...newStudent,
@@ -89,51 +66,58 @@ export const useParentDashboard = () => {
     );
   };
 
+  // Transfer completion handler
+  const handleTransferComplete = () => {
+    // Refresh balance and transactions after transfer
+    dashboard.refreshBalance();
+    transactionManager.refreshTransactions();
+  };
+
   // Calculate metrics
-  const totalSentThisMonth = transactions
+  const totalSentThisMonth = transactionManager.transactions
     .filter(tx => {
       const txDate = new Date(tx.timestamp);
       const now = new Date();
-      return txDate.getMonth() === now.getMonth() && 
+      return txDate.getMonth() === now.getMonth() &&
              txDate.getFullYear() === now.getFullYear() &&
              tx.type === 'outgoing' &&
              tx.status === 'confirmed'; // Only count confirmed transactions
     })
     .reduce((total, tx) => total.plus(tx.amount), new BigNumber(0));
 
-  const recentTransfers = transactions
+  const recentTransfers = transactionManager.transactions
     .filter(tx => tx.type === 'outgoing')
     .slice(0, 5);
 
   const connectedStudents = students.filter(s => s.isActive);
 
   return {
-    // Wallet state
-    balance,
-    connected,
-    publicKey,
-    refreshBalance,
-    
+    // Dashboard state
+    ...dashboard,
+
+    // Transaction management
+    transactions: transactionManager.transactions,
+    transactionsLoading: transactionManager.isLoading,
+    loadTransactions: transactionManager.loadTransactions,
+    refreshBlockchainTransactions: transactionManager.refreshTransactions,
+
+    // Currency formatting
+    ...currencyFormatter,
+
     // Students state
     students,
     connectedStudents,
     handleStudentAdded,
     handleStudentUpdated,
-    
+
     // Transactions state
-    transactions,
-    transactionsLoading,
     recentTransfers,
     handleTransferComplete,
-    
-    // Tab management
-    activeTab,
-    setActiveTab,
-    
+
     // Computed values
     totalSentThisMonth,
     hasStudents: students.length > 0,
-    hasTransactions: transactions.length > 0
+    hasTransactions: transactionManager.transactions.length > 0
   };
 };
 

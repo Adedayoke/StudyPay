@@ -11,12 +11,12 @@ import { VendorProfile, VendorMenuItem } from '@/lib/vendors/vendorRegistry';
 import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { StudyPayIcon, CategoryIcon, StatusIcon } from '@/lib/utils/iconMap';
 import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
 import { PaymentExecutor } from '@/components/payments/PaymentExecutor';
 import { createVendorPaymentRequest, createSolanaPayTransfer } from '@/lib/solana/payment';
-import { formatCurrency, nairaToSolSync } from '@/lib/solana/utils';
 import { PublicKey } from '@solana/web3.js';
 
 interface VendorProfileViewProps {
@@ -39,17 +39,7 @@ export default function VendorProfileView({
   const [cartItemCount, setCartItemCount] = useState(0);
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
+  const currencyFormatter = useCurrencyFormatter();
 
   // Device detection for optimal payment method
   const isMobile = typeof window !== 'undefined' && (
@@ -104,7 +94,7 @@ export default function VendorProfileView({
     }
 
     // Convert Naira input back to SOL for payment processing
-    const solAmount = nairaToSolSync(nairaAmount);
+    const solAmount = currencyFormatter.nairaToSol(nairaAmount);
 
     if (useSolanaPay) {
       // Mobile: Use Solana Pay Transfer Request
@@ -259,13 +249,13 @@ export default function VendorProfileView({
                     
                     <div className="text-right ml-4">
                       <div className="font-semibold text-dark-text-primary">
-                        ₦{solToNaira(product.price).toFixed(0)}
+                        ₦{currencyFormatter.solToNaira(product.price).toFixed(0)}
                       </div>
                       <div className="text-xs text-dark-text-secondary">
-                        ≈ {formatCurrency(product.price, 'SOL')}
+                        ≈ {currencyFormatter.formatCurrency(product.price, 'SOL')}
                       </div>
                       <div className="text-xs text-dark-text-secondary">
-                        ≈ ₦{solToNaira(product.price).toFixed(0)}
+                        ≈ ₦{currencyFormatter.solToNaira(product.price).toFixed(0)}
                       </div>
                     </div>
                   </div>
@@ -317,7 +307,7 @@ export default function VendorProfileView({
             />
             {customAmount && !isNaN(Number(customAmount)) && Number(customAmount) > 0 && (
               <div className="text-xs text-dark-text-secondary mt-1">
-                ₦{new BigNumber(customAmount).toFixed(0)} ≈ {formatCurrency(nairaToSolSync(new BigNumber(customAmount)), 'SOL')}
+                ₦{new BigNumber(customAmount).toFixed(0)} ≈ {currencyFormatter.formatCurrency(currencyFormatter.nairaToSol(new BigNumber(customAmount)), 'SOL')}
               </div>
             )}
           </div>
@@ -427,7 +417,7 @@ export default function VendorProfileView({
                 Stats
               </h3>
               <div className="text-sm text-dark-text-secondary space-y-1">
-                <div>Total Sales: ₦{solToNaira(vendor.stats.totalSales).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(vendor.stats.totalSales, 'SOL')})</span></div>
+                <div>Total Sales: ₦{currencyFormatter.solToNaira(vendor.stats.totalSales).toFixed(0)} <span className="text-xs">(≈ {currencyFormatter.formatCurrency(vendor.stats.totalSales, 'SOL')})</span></div>
                 <div>Total Orders: {vendor.stats.totalTransactions}</div>
                 <div>Member Since: {vendor.stats.joinDate.toLocaleDateString()}</div>
                 <div>Last Active: {vendor.stats.lastActiveDate.toLocaleDateString()}</div>
@@ -465,7 +455,7 @@ export default function VendorProfileView({
                 Confirm Payment
               </h3>
               <div className="text-sm text-dark-text-secondary mb-3">
-                <div>Amount: ₦{solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(selectedAmount, 'SOL')})</span></div>
+                <div>Amount: ₦{currencyFormatter.solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {currencyFormatter.formatCurrency(selectedAmount, 'SOL')})</span></div>
                 <div>To: {vendor.businessName}</div>
                 <div>Description: {paymentMemo}</div>
               </div>
@@ -555,7 +545,7 @@ export default function VendorProfileView({
                 Generate Payment QR Code
               </h3>
               <div className="text-sm text-dark-text-secondary mb-3">
-                <div>Amount: ₦{solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {formatCurrency(selectedAmount, 'SOL')})</span></div>
+                <div>Amount: ₦{currencyFormatter.solToNaira(selectedAmount).toFixed(0)} <span className="text-xs">(≈ {currencyFormatter.formatCurrency(selectedAmount, 'SOL')})</span></div>
                 <div>To: {vendor.businessName}</div>
                 <div>Description: {paymentMemo}</div>
               </div>

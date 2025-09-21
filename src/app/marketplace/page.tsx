@@ -8,53 +8,66 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge } from '@/components/ui';
 import { vendorRegistry, VendorProfile, VendorSearchFilters } from '@/lib/vendors/vendorRegistry';
-import { formatCurrency, solToNairaSync } from '@/lib/solana/utils';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
 import Logo from '@/components/ui/Logo';
 import { Search, Filter, MapPin, Clock, Star, Phone } from 'lucide-react';
+import { useDataLoader } from '@/hooks/useDataLoader';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { useRouter } from 'next/navigation';
 
 export default function MarketplacePage() {
-  const [vendors, setVendors] = useState<VendorProfile[]>([]);
-  const [filteredVendors, setFilteredVendors] = useState<VendorProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  // Load vendors on component mount
-  useEffect(() => {
-    loadVendors();
-  }, []);
+  // Add router for navigation
+  const router = useRouter();
 
-  // Filter vendors when search or category changes
+  // Use extracted hooks
+  const currencyFormatter = useCurrencyFormatter();
+  const {
+    data: vendors,
+    isLoading,
+    error,
+    loadData: loadVendors
+  } = useDataLoader<VendorProfile[]>(
+    async () => vendorRegistry.getAllVendors(),
+    [],
+    true // Auto-load on mount
+  );
+
+  const [filteredVendors, setFilteredVendors] = useState<VendorProfile[]>([]);
+
+  // Filter vendors when search, category, or vendors data changes
   useEffect(() => {
-    filterVendors();
+    if (vendors) {
+      filterVendors();
+    }
   }, [vendors, searchTerm, selectedCategory]);
 
-  const loadVendors = async () => {
-    setIsLoading(true);
-    try {
-      const allVendors = vendorRegistry.getAllVendors();
-      setVendors(allVendors);
-    } catch (error) {
-      console.error('Error loading vendors:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const filterVendors = () => {
-    const filters: VendorSearchFilters = {};
+    if (!vendors) {
+      setFilteredVendors([]);
+      return;
+    }
 
+    let filtered = vendors;
+
+    // Filter by category
     if (selectedCategory) {
-      filters.category = selectedCategory;
+      filtered = filtered.filter(vendor => vendor.category === selectedCategory);
     }
 
+    // Filter by search term
     if (searchTerm) {
-      filters.searchTerm = searchTerm;
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(vendor =>
+        vendor.businessName.toLowerCase().includes(term) ||
+        vendor.description.toLowerCase().includes(term) ||
+        vendor.location.building.toLowerCase().includes(term)
+      );
     }
 
-    const filtered = vendorRegistry.searchVendors(filters);
     setFilteredVendors(filtered);
   };
 
@@ -112,8 +125,13 @@ export default function MarketplacePage() {
     setSelectedCategory('');
   };
 
+  const handleVendorNavigation = (vendorId: string) => {
+    // Navigate to student page with vendor parameter
+    router.push(`/student?vendors=true&vendorId=${vendorId}`);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+    <div className="min-h-screen bg-dark-bg-secondary text-white">
       {/* Header */}
       <header className="bg-dark-bg-secondary shadow-dark border-b border-dark-border-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -263,7 +281,7 @@ export default function MarketplacePage() {
                     <div>
                       <div className="text-gray-400">Avg. Order</div>
                       <div className="text-white font-medium">
-                        ₦{solToNairaSync(vendor.pricing.averageOrderValue || new BigNumber(0)).toFixed(0)}
+                        {currencyFormatter.formatNaira(currencyFormatter.solToNaira(vendor.pricing.averageOrderValue || new BigNumber(0)))}
                       </div>
                     </div>
                   </div>
@@ -279,10 +297,7 @@ export default function MarketplacePage() {
                   {/* Action Button */}
                   <Button
                     className="w-full bg-solana-purple-500 hover:bg-solana-purple-600"
-                    onClick={() => {
-                      // TODO: Navigate to vendor detail page
-                      console.log('View vendor:', vendor.id);
-                    }}
+                    onClick={() => handleVendorNavigation(vendor.id)}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <StudyPayIcon name="scan" size={16} />
@@ -319,7 +334,7 @@ export default function MarketplacePage() {
         {/* Footer Stats */}
         <div className="mt-12 text-center text-gray-400">
           <p className="text-sm">
-            🌟 <strong>{vendors.length} verified vendors</strong> across University of Lagos campus
+            🌟 <strong>{vendors?.length || 0} verified vendors</strong> across University of Lagos campus
           </p>
           <p className="text-xs mt-1">
             All payments processed instantly via Solana Pay • No hidden fees

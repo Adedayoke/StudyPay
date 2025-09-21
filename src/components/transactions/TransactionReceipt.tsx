@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Transaction } from '@/lib/types/payment';
-import { formatSOL } from '@/lib/utils/formatting';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import BigNumber from 'bignumber.js';
 
 interface TransactionReceiptProps {
@@ -19,9 +19,7 @@ export default function TransactionReceipt({
   onViewOnExplorer 
 }: TransactionReceiptProps) {
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
+  const currencyFormatter = useCurrencyFormatter();
   const getStatusIcon = (status: string, size: number = 16) => {
     switch (status) {
       case 'confirmed':
@@ -95,7 +93,7 @@ export default function TransactionReceipt({
           <div className="flex justify-between">
             <span className="text-gray-400">Amount</span>
             <span className="text-white font-mono">
-              ₦{solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
+              ₦{currencyFormatter.solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
             </span>
           </div>
 
@@ -153,7 +151,7 @@ export default function TransactionReceipt({
             <div className="flex justify-between">
               <span className="text-gray-400">Network Fee</span>
               <span className="text-white font-mono">
-                ₦{solToNaira(new BigNumber(transaction.fees)).toFixed(0)}
+                ₦{currencyFormatter.solToNaira(new BigNumber(transaction.fees)).toFixed(0)}
               </span>
             </div>
           )}
@@ -176,7 +174,7 @@ export default function TransactionReceipt({
               const receiptData = `
 StudyPay Payment Receipt
 ========================
-Amount: ₦${solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
+Amount: ₦${currencyFormatter.solToNaira(new BigNumber(transaction.amount)).toFixed(0)}
 From: ${transaction.fromAddress}
 To: ${transaction.toAddress}
 Status: ${getStatusText(transaction.status)}

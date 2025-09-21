@@ -10,8 +10,10 @@ import { Card, Button, Badge, Alert } from '@/components/ui';
 import { orderService } from '@/lib/services/orderService';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import { OrderSummary, OrderStatus, PaymentStatus } from '@/lib/types/order';
+import BigNumber from 'bignumber.js';
 
 interface OrderHistoryProps {
   onViewOrder?: (orderId: string) => void;
@@ -23,17 +25,7 @@ export default function OrderHistory({ onViewOrder }: OrderHistoryProps) {
   const [loading, setLoading] = useState(true);
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
-
-  // Wrapper functions to maintain compatibility
-  const solToNaira = (amount: BigNumber) => convertSolToNaira(amount).amount;
-  const formatCurrency = (amount: BigNumber, currency: string) => {
-    if (currency === 'SOL') {
-      return `${amount.toFixed(4)} SOL`;
-    } else if (currency === 'NGN') {
-      return `₦${amount.toFormat(2)}`;
-    }
-    return amount.toString();
-  };
+  const currencyFormatter = useCurrencyFormatter();
 
   useEffect(() => {
     if (connected && publicKey) {
@@ -190,10 +182,10 @@ export default function OrderHistory({ onViewOrder }: OrderHistoryProps) {
               </div>
               <div className="text-right">
                 <div className="font-semibold text-dark-text-primary">
-                  ₦{solToNaira(order.total).toFixed(0)}
+                  ₦{currencyFormatter.solToNaira(order.total).toFixed(0)}
                 </div>
                 <div className="text-xs text-dark-text-secondary">
-                  ≈ {formatCurrency(order.total, 'SOL')}
+                  ≈ {currencyFormatter.formatCurrency(order.total, 'SOL')}
                 </div>
               </div>
             </div>
