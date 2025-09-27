@@ -48,7 +48,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-400/30 rounded-xl p-6 mb-8 max-w-4xl mx-auto">
+          {/* <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-400/30 rounded-xl p-6 mb-8 max-w-4xl mx-auto">
             <p className="text-lg md:text-xl text-gray-200 leading-relaxed">
               <span className="text-red-400 font-bold">"Is my child eating well? Are they spending wisely?"</span>
               <br className="hidden md:block" />
@@ -58,7 +58,7 @@ export default function HomePage() {
               <span className="text-yellow-400 font-bold">zero visibility</span>
               <span className="text-gray-300"> into how it's spent.</span>
             </p>
-          </div>
+          </div> */}
 
           <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
             <span className="font-semibold text-white">StudyPay is Nigeria's first family-connected campus economy</span> — 

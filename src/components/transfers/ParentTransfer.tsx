@@ -364,7 +364,7 @@ export default function ParentTransfer({ students, onTransferComplete }: ParentT
             className="w-full"
             size="lg"
           >
-            {isTransferring ? 'Processing Transfer...' : `Send ${amount || '0'} SOL`}
+            {isTransferring ? 'Processing Transfer...' : `Send ₦${parseFloat(amount || '0').toLocaleString()}`}
           </Button>
         </Card>
       )}

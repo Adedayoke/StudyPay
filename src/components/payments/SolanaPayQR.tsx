@@ -154,14 +154,14 @@ export function SolanaPayQRGenerator({
       {!qrCodeDataURL ? (
         <div className="space-y-4">
           <Input
-            label="Amount (SOL)"
+            label="Amount (₦ Naira)"
             type="number"
-            step="0.001"
+            step="100"
             min="0"
-            max="1000"
+            max="50000000"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.025"
+            placeholder="2500"
           />
           
           <Input
@@ -203,8 +203,11 @@ export function SolanaPayQRGenerator({
           
           <div className="text-sm text-dark-text-secondary">
             <p className="font-medium text-dark-text-primary">{description}</p>
-            <p className="text-solana-purple-500 font-semibold">
-              {formatNairaAmount(new BigNumber(amount))}
+            <p className="text-solana-purple-500 font-semibold text-lg">
+              ₦{new BigNumber(amount).toFormat(0)}
+            </p>
+            <p className="text-xs text-dark-text-muted">
+              ≈ {nairaToSolSync(new BigNumber(amount)).toFixed(4)} SOL
             </p>
             <p className="text-xs text-dark-text-muted mt-1">
               🔒 Official Solana Pay Protocol
