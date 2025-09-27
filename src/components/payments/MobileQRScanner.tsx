@@ -39,10 +39,14 @@ export default function MobileQRScanner({
 
   useEffect(() => {
     if (isOpen) {
-      // Dynamically import QR code reader
+      // Dynamically import QR code reader with better configuration
       import('@zxing/library').then((ZXing) => {
+        console.log('ZXing library loaded successfully');
+        
+        // Create a more robust QR code reader
         const codeReader = new ZXing.BrowserQRCodeReader();
         setQrCodeReader(codeReader);
+        console.log('QR code reader initialized with hints');
       }).catch((err) => {
         console.error('Failed to load QR code reader:', err);
         setError('QR scanner not available. Please use manual input.');
@@ -148,36 +152,51 @@ export default function MobileQRScanner({
 
     if (!context) return;
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    // Wait for video metadata to be loaded
+    const startScanning = () => {
+      // Set canvas size to match video
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
 
-    // Scan every 500ms for better performance
-    scanIntervalRef.current = setInterval(() => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        try {
-          // Draw video frame to canvas
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Get image data
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          
-          // Try to decode QR code
-          qrCodeReader.decodeFromImageData(imageData)
-            .then((result: any) => {
-              if (result && result.text) {
-                console.log('QR Code detected:', result.text);
-                handleQRResult(result.text);
-              }
-            })
-            .catch(() => {
-              // Ignore decode errors - they're normal during scanning
-            });
-        } catch (err) {
-          // Ignore canvas errors
+      console.log('Starting QR scanning with video dimensions:', canvas.width, 'x', canvas.height);
+
+      // Scan every 300ms for better responsiveness
+      scanIntervalRef.current = setInterval(() => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          try {
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Get image data
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // Try to decode QR code using ZXing
+            qrCodeReader.decodeFromImageData(imageData)
+              .then((result: any) => {
+                if (result && result.text) {
+                  console.log('QR Code detected:', result.text);
+                  handleQRResult(result.text);
+                }
+              })
+              .catch((err: any) => {
+                // Only log actual errors, not "not found" errors
+                if (err.message && !err.message.includes('No MultiFormat Readers')) {
+                  console.debug('QR decode error:', err.message);
+                }
+              });
+          } catch (err) {
+            console.error('Canvas error:', err);
+          }
         }
-      }
-    }, 500);
+      }, 300);
+    };
+
+    // Start scanning when video is ready
+    if (video.readyState >= 2) {
+      startScanning();
+    } else {
+      video.addEventListener('loadedmetadata', startScanning, { once: true });
+    }
   };
 
   const handleQRResult = (qrData: string) => {
@@ -272,11 +291,24 @@ export default function MobileQRScanner({
                 {/* Scanning overlay */}
                 {isScanning && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-solana-purple-500 rounded-lg relative">
+                    <div className="w-48 h-48 border-2 border-solana-purple-500 rounded-lg relative animate-pulse">
                       <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-solana-purple-400 rounded-tl-lg"></div>
                       <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-solana-purple-400 rounded-tr-lg"></div>
                       <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-solana-purple-400 rounded-bl-lg"></div>
                       <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-solana-purple-400 rounded-br-lg"></div>
+                      
+                      {/* Scanning line animation */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-solana-purple-400 to-transparent animate-bounce"></div>
+                    </div>
+                    
+                    {/* Status text */}
+                    <div className="absolute bottom-4 left-0 right-0 text-center">
+                      <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg mx-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+                          <span className="text-sm">Scanning for QR codes...</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

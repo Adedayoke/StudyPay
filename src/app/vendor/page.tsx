@@ -124,7 +124,7 @@ export default function VendorDashboard() {
                   </div>
                   <div className="text-sm text-dark-text-muted">
                     ≈{" "}
-                    {formatCurrency(new BigNumber(balance), "SOL")}
+                    {formatSol(new BigNumber(balance))}
                   </div>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function VendorDashboard() {
                     Total Earned
                   </div>
                   <div className="text-xs text-dark-text-muted">
-                    ≈ {formatCurrency(totalToday, "SOL")}
+                    ≈ {formatSol(totalToday)}
                   </div>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function VendorDashboard() {
                     +{formatCurrency(solToNaira(payment.amount), "NGN")}
                   </div>
                   <div className="text-xs text-dark-text-muted">
-                    ≈ {formatCurrency(payment.amount, "SOL")}
+                    ≈ {formatSol(payment.amount)}
                   </div>
                 </div>
               </div>

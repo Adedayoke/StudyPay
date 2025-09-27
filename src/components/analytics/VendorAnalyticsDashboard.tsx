@@ -186,7 +186,7 @@ export default function VendorAnalyticsDashboard({
               for {realTimeData.newTransaction.item}
             </div>
             <div className="text-xs text-dark-text-muted mt-1">
-              ≈ {formatCurrency(realTimeData.newTransaction.amount, 'SOL')} • {realTimeData.currentActivity} customers currently active
+              ≈ {realTimeData.newTransaction.amount.toFixed(4)} SOL • {realTimeData.currentActivity} customers currently active
             </div>
           </div>
         )}
@@ -202,7 +202,7 @@ export default function VendorAnalyticsDashboard({
                 ₦{solToNaira(analytics.metrics.totalSales).toFixed(0)}
               </p>
               <p className="text-xs text-dark-text-muted">
-                ≈ {formatCurrency(analytics.metrics.totalSales, 'SOL')}
+                ≈ {analytics.metrics.totalSales.toFixed(4)} SOL
               </p>
             </div>
             <div className="text-right">
