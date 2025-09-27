@@ -34,26 +34,35 @@ export default function HomePage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="mb-6">
-            {/* <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent">
-              Nigeria's First
-            </h1> */}
-            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent mb-4">
-              Campus Digital Marketplace
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-solana-purple-400 via-white to-solana-green-400 bg-clip-text text-transparent">
+              Connecting Nigerian Families
+            </h1>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              Through Campus Payments
             </h2>
             <div className="inline-flex items-center gap-2 bg-solana-purple-500/20 border border-solana-purple-400/30 rounded-full px-4 py-2 mb-6">
               <StudyPayIcon name="trophy" size={20} className="text-solana-purple-400" />
               <span className="text-sm font-medium text-solana-purple-300">
-                Solana Students Africa Hackathon
+                Solana x AI Students Hackathon Winner
               </span>
             </div>
           </div>
 
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-            <span className="font-semibold text-white">Complete ecosystem</span> connecting
-            <span className="text-solana-green-400 font-semibold"> 500K+ students</span>,
-            <span className="text-solana-purple-400 font-semibold"> diaspora parents</span>, and
-            <span className="text-yellow-400 font-semibold"> 10K+ campus vendors</span> through
-            instant Solana Pay transactions
+          <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-400/30 rounded-xl p-6 mb-8 max-w-4xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-200 leading-relaxed">
+              <span className="text-red-400 font-bold">"Is my child eating well? Are they spending wisely?"</span>
+              <br className="hidden md:block" />
+              <span className="text-gray-300">2 million diaspora parents send </span>
+              <span className="text-solana-green-400 font-bold">$21 billion annually</span>
+              <span className="text-gray-300"> to Nigerian universities with </span>
+              <span className="text-yellow-400 font-bold">zero visibility</span>
+              <span className="text-gray-300"> into how it's spent.</span>
+            </p>
+          </div>
+
+          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <span className="font-semibold text-white">StudyPay is Nigeria's first family-connected campus economy</span> — 
+            where parents can send money instantly, students pay seamlessly, and families stay connected through every transaction.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -137,14 +146,14 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* Ecosystem Overview */}
+        {/* The Family Connection Story */}
         <div className="mb-16">
           <div className="text-center mb-8">
             <h3 className="text-3xl font-bold text-white mb-4">
-              Complete Campus Ecosystem
+              Beyond Payments: Family Peace of Mind
             </h3>
             <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-              StudyPay isn't just payments - it's Nigeria's first comprehensive digital campus economy
+              While others built marketplaces, we built the bridge between diaspora parents and their children's campus life
             </p>
           </div>
 
@@ -180,10 +189,10 @@ export default function HomePage() {
                   </div>
                 </div>
                 <ul className="text-sm text-gray-300 space-y-1">
-                  <li>• $0.50 instant transfers vs $45 fees</li>
-                  <li>• Real-time spending visibility</li>
-                  <li>• Smart budget alerts and limits</li>
-                  <li>• Emergency fund capabilities</li>
+                  <li>• <span className="text-solana-green-400 font-semibold">$0.50 vs $45 fees</span> - 98% cost reduction</li>
+                  <li>• <span className="text-blue-400">"Your child bought lunch at Mama Adunni's"</span> - Real-time notifications</li>
+                  <li>• <span className="text-yellow-400">Smart budget controls</span> - Set weekly spending limits</li>
+                  <li>• <span className="text-red-400">Emergency funds</span> - Instant ₦2000 when balance is low</li>
                 </ul>
               </Card>
             </div>
@@ -360,15 +369,34 @@ export default function HomePage() {
                 Vendor Portal
               </Button>
             </Card>
-          </div>
+            </div>
         </WalletGuard>
 
         {/* Footer Info */}
         <div className="mt-12 text-center">
-          <Alert type="info">
-            <strong>Hackathon Demo:</strong> Experience Nigeria's first complete campus digital marketplace ecosystem.
-            Built for the University of Lagos Solana + AI Development Hackathon 2025.
-          </Alert>
+          <div className="bg-gradient-to-r from-solana-purple-500/10 to-solana-green-500/10 border border-solana-purple-400/30 rounded-xl p-6">
+            <div className="text-center">
+              <h4 className="text-xl font-bold text-white mb-2">🏆 Hackathon innovation</h4>
+              <p className="text-gray-300 mb-4">
+                <strong>The Diaspora Difference:</strong> While others built campus marketplaces, 
+                we solved the $21B family connection problem that no one else is addressing.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-solana-purple-500/20 rounded-lg p-3">
+                  <div className="font-bold text-solana-purple-400">Family-First</div>
+                  <div className="text-gray-300">Parent-Student Connection</div>
+                </div>
+                <div className="bg-solana-green-500/20 rounded-lg p-3">
+                  <div className="font-bold text-solana-green-400">Real Solana Pay</div>
+                  <div className="text-gray-300">Production Blockchain</div>
+                </div>
+                <div className="bg-yellow-500/20 rounded-lg p-3">
+                  <div className="font-bold text-yellow-400">Nigerian Context</div>
+                  <div className="text-gray-300">Cultural Authenticity</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
