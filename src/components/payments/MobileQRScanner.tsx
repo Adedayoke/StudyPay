@@ -1,13 +1,14 @@
 /**
  * Mobile-Optimized QR Scanner
- * Uses native browser APIs for better mobile compatibility
+ * Uses blackbox-vision react-qr-reader for better mobile compatibility
  */
 
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, Button, Alert } from '@/components/ui';
 import { Camera, X, Upload, Type } from 'lucide-react';
+import { QrReader } from '@blackbox-vision/react-qr-reader';
 
 interface MobileQRScannerProps {
   onQRDetected: (data: string) => void;
@@ -24,225 +25,52 @@ export default function MobileQRScanner({
 }: MobileQRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [manualInput, setManualInput] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Import QR code library dynamically for better performance
-  const [qrCodeReader, setQrCodeReader] = useState<any>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      // Dynamically import QR code reader with better configuration
-      import('@zxing/library').then((ZXing) => {
-        console.log('ZXing library loaded successfully');
-        
-        // Create a more robust QR code reader
-        const codeReader = new ZXing.BrowserQRCodeReader();
-        setQrCodeReader(codeReader);
-        console.log('QR code reader initialized with hints');
-      }).catch((err) => {
-        console.error('Failed to load QR code reader:', err);
-        setError('QR scanner not available. Please use manual input.');
-      });
-    }
-
-    return () => {
-      cleanup();
-    };
-  }, [isOpen]);
-
-  const cleanup = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-    setIsScanning(false);
-  }, [stream]);
-
-  const checkCameraPermission = async (): Promise<boolean> => {
-    try {
-      // Check if we can access the camera
-      const testStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 }
-        } 
-      });
-      
-      // Stop the test stream immediately
-      testStream.getTracks().forEach(track => track.stop());
-      setHasPermission(true);
-      return true;
-    } catch (err: any) {
-      console.error('Camera permission check failed:', err);
-      
-      let errorMessage = 'Camera access denied.';
-      if (err.name === 'NotAllowedError') {
-        errorMessage = 'Camera permission denied. Please enable camera access and try again.';
-      } else if (err.name === 'NotFoundError') {
-        errorMessage = 'No camera found on this device.';
-      } else if (err.name === 'NotReadableError') {
-        errorMessage = 'Camera is being used by another app.';
-      }
-      
-      setError(errorMessage);
-      setHasPermission(false);
-      onError?.(errorMessage);
-      return false;
+  const handleQRResult = (result: any) => {
+    if (result?.text) {
+      console.log('QR Code detected:', result.text);
+      setIsScanning(false);
+      setError(null);
+      onQRDetected(result.text);
     }
   };
 
-  const startCamera = async () => {
-    if (!videoRef.current || !qrCodeReader) return;
+  const handleQRError = (error: any) => {
+    console.error('QR Scanner error:', error);
+    setError('Failed to scan QR code. Please try again or use manual input.');
+    onError?.('QR scanner error');
+  };
 
+  const startScanning = () => {
     setError(null);
     setIsScanning(true);
-
-    try {
-      const hasCamera = await checkCameraPermission();
-      if (!hasCamera) return;
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 }
-        }
-      });
-
-      setStream(mediaStream);
-      videoRef.current.srcObject = mediaStream;
-      
-      // Wait for video to be ready
-      await new Promise<void>((resolve) => {
-        if (videoRef.current) {
-          videoRef.current.onloadedmetadata = () => resolve();
-        }
-      });
-
-      // Start scanning
-      startQRScanning();
-
-    } catch (err: any) {
-      console.error('Failed to start camera:', err);
-      setError('Failed to start camera. Please try manual input.');
-      setIsScanning(false);
-      onError?.('Failed to start camera');
-    }
+    console.log('Starting QR scanner...');
   };
 
-  const startQRScanning = () => {
-    if (!videoRef.current || !canvasRef.current || !qrCodeReader) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    // Wait for video metadata to be loaded
-    const startScanning = () => {
-      // Set canvas size to match video
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-
-      console.log('Starting QR scanning with video dimensions:', canvas.width, 'x', canvas.height);
-
-      // Scan every 300ms for better responsiveness
-      scanIntervalRef.current = setInterval(() => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          try {
-            // Draw video frame to canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Get image data
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            
-            // Try to decode QR code using ZXing
-            qrCodeReader.decodeFromImageData(imageData)
-              .then((result: any) => {
-                if (result && result.text) {
-                  console.log('QR Code detected:', result.text);
-                  handleQRResult(result.text);
-                }
-              })
-              .catch((err: any) => {
-                // Only log actual errors, not "not found" errors
-                if (err.message && !err.message.includes('No MultiFormat Readers')) {
-                  console.debug('QR decode error:', err.message);
-                }
-              });
-          } catch (err) {
-            console.error('Canvas error:', err);
-          }
-        }
-      }, 300);
-    };
-
-    // Start scanning when video is ready
-    if (video.readyState >= 2) {
-      startScanning();
-    } else {
-      video.addEventListener('loadedmetadata', startScanning, { once: true });
-    }
-  };
-
-  const handleQRResult = (qrData: string) => {
-    cleanup();
-    setError(null);
-    onQRDetected(qrData);
+  const stopScanning = () => {
+    setIsScanning(false);
+    console.log('Stopping QR scanner...');
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !qrCodeReader) return;
+    if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
-        canvas.width = img.width;
-        canvas.height = img.height;
-        context.drawImage(img, 0, 0);
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        
-        qrCodeReader.decodeFromImageData(imageData)
-          .then((result: any) => {
-            if (result && result.text) {
-              handleQRResult(result.text);
-            } else {
-              setError('No QR code found in the image.');
-            }
-          })
-          .catch(() => {
-            setError('Failed to read QR code from image.');
-          });
-      };
-      img.src = e.target?.result as string;
+      // For file upload, we'll just show manual input as fallback
+      setError('Please use manual input for file-based QR codes.');
+      setShowManualInput(true);
     };
     reader.readAsDataURL(file);
   };
 
   const handleManualSubmit = () => {
     if (manualInput.trim()) {
-      handleQRResult(manualInput.trim());
+      onQRDetected(manualInput.trim());
     }
   };
 
@@ -272,43 +100,43 @@ export default function MobileQRScanner({
             </Alert>
           )}
 
-          {/* Camera View */}
+          {/* QR Scanner */}
           {!showManualInput && (
             <div className="space-y-4">
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <canvas
-                  ref={canvasRef}
-                  className="hidden"
-                />
+                {isScanning ? (
+                  <div className="w-full h-full">
+                    <QrReader
+                      onResult={(result, error) => {
+                        if (error) {
+                          handleQRError(error);
+                        }
+                        if (result) {
+                          handleQRResult(result);
+                        }
+                      }}
+                      constraints={{
+                        facingMode: 'environment'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Camera size={48} className="mx-auto mb-4 text-gray-400" />
+                      <p className="text-sm text-gray-400">Click "Start Camera" to begin scanning</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Scanning overlay */}
                 {isScanning && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-solana-purple-500 rounded-lg relative animate-pulse">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-48 border-2 border-solana-purple-500 rounded-lg relative">
                       <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-solana-purple-400 rounded-tl-lg"></div>
                       <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-solana-purple-400 rounded-tr-lg"></div>
                       <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-solana-purple-400 rounded-bl-lg"></div>
                       <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-solana-purple-400 rounded-br-lg"></div>
-                      
-                      {/* Scanning line animation */}
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-solana-purple-400 to-transparent animate-bounce"></div>
-                    </div>
-                    
-                    {/* Status text */}
-                    <div className="absolute bottom-4 left-0 right-0 text-center">
-                      <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg mx-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-                          <span className="text-sm">Scanning for QR codes...</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -318,16 +146,15 @@ export default function MobileQRScanner({
               <div className="flex gap-2">
                 {!isScanning ? (
                   <Button
-                    onClick={startCamera}
+                    onClick={startScanning}
                     className="flex-1 bg-solana-purple-500 hover:bg-solana-purple-600"
-                    disabled={!qrCodeReader}
                   >
                     <Camera size={16} className="mr-2" />
                     Start Camera
                   </Button>
                 ) : (
                   <Button
-                    onClick={cleanup}
+                    onClick={stopScanning}
                     variant="secondary"
                     className="flex-1"
                   >
@@ -368,7 +195,6 @@ export default function MobileQRScanner({
               onClick={() => fileInputRef.current?.click()}
               variant="secondary"
               className="w-full"
-              disabled={!qrCodeReader}
             >
               <Upload size={16} className="mr-2" />
               Upload QR Image

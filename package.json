@@ -13,6 +13,7 @@
     "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "dependencies": {
+    "@blackbox-vision/react-qr-reader": "^5.0.0",
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/pay": "^0.2.6",
     "@solana/wallet-adapter-base": "^0.9.27",
