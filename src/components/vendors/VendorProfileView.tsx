@@ -12,6 +12,7 @@ import { FoodPaymentQR } from '@/components/payments/SolanaPayQR';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { usePriceConversion } from '@/hooks/usePriceConversion';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { usePaymentMethod } from '@/hooks/useDeviceDetection';
 import { StudyPayIcon, CategoryIcon, StatusIcon } from '@/lib/utils/iconMap';
 import { cartService } from '@/lib/services/cartService';
 import BigNumber from 'bignumber.js';
@@ -40,15 +41,9 @@ export default function VendorProfileView({
 
   const { convertSolToNaira, isLoading: priceLoading, error: priceError } = usePriceConversion();
   const currencyFormatter = useCurrencyFormatter();
-
-  // Device detection for optimal payment method
-  const isMobile = typeof window !== 'undefined' && (
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    (window.innerWidth <= 768 && 'ontouchstart' in window)
-  );
-
-  // Choose payment method based on device
-  const useSolanaPay = isMobile;
+  
+  // Use device detection hook for optimal payment method
+  const { shouldUseSolanaPay, isMobile } = usePaymentMethod();
 
   // Update cart count when component mounts
   useEffect(() => {
@@ -96,7 +91,7 @@ export default function VendorProfileView({
     // Convert Naira input back to SOL for payment processing
     const solAmount = currencyFormatter.nairaToSol(nairaAmount);
 
-    if (useSolanaPay) {
+    if (shouldUseSolanaPay) {
       // Mobile: Use Solana Pay Transfer Request
       console.log('📱 Using Solana Pay method for mobile vendor payment');
 
@@ -361,11 +356,11 @@ export default function VendorProfileView({
         {connected && customAmount && !isNaN(Number(customAmount)) && Number(customAmount) > 0 && isOpen() && (
           <div className="text-center mt-2">
             <span className={`text-xs px-2 py-1 rounded-full ${
-              useSolanaPay
+              shouldUseSolanaPay
                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                 : 'bg-green-500/20 text-green-400 border border-green-500/30'
             }`}>
-              {useSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
+              {shouldUseSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
             </span>
           </div>
         )}
@@ -463,16 +458,16 @@ export default function VendorProfileView({
               {/* Payment Method Indicator */}
               <div className="text-center mb-4">
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  useSolanaPay
+                  shouldUseSolanaPay
                     ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                     : 'bg-green-500/20 text-green-400 border border-green-500/30'
                 }`}>
-                  {useSolanaPay ? '📱 Using Solana Pay (Mobile)' : '💻 Using Direct Transfer (Desktop)'}
+                  {shouldUseSolanaPay ? '📱 Using Solana Pay (Mobile)' : '💻 Using Direct Transfer (Desktop)'}
                 </span>
               </div>
             </div>
             
-            {useSolanaPay ? (
+            {shouldUseSolanaPay ? (
               // Mobile: Solana Pay Flow
               <div className="space-y-4">
                 <div className="text-center text-sm text-dark-text-secondary">

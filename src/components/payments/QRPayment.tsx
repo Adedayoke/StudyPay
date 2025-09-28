@@ -2,30 +2,28 @@
  * Real Solana Pay QR Components
  * Handles actual QR generation and payment processing
  */
-
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import { Card, Button, Alert, Input } from '@/components/ui';
-import { 
-  generatePaymentQR, 
-  createVendorPaymentRequest, 
+import {
+  generateSolanaPayQR,
+  createSolanaPayTransactionRequest,
   createSolanaPayURL,
+  parseSolanaPayURL,
   formatPaymentAmount,
   formatNairaAmount,
   isValidPaymentAmount,
   isValidNairaAmount,
   SolanaPayRequest,
-  parseSolanaPayURL,
-  getMockVendorAddress
+  PaymentStatus,
+  PaymentResult
 } from '@/lib/solana/payment';
+import { vendorTransactionService } from '@/lib/services/vendorTransactionService';
 import { nairaToSolSync } from '@/lib/solana/utils';
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { PaymentExecutor, PaymentSuccess } from '@/components/payments/PaymentExecutor';
-
-// =============================================================================
 // Real QR Payment Generator (For Vendors)
 // =============================================================================
 
@@ -72,20 +70,24 @@ export function QRPaymentGenerator({
       setError('Invalid amount. Must be between ₦0 and ₦50,000,000');
       return;
     }
-
     setLoading(true);
     setError('');
 
     try {
-      // Create real Solana Pay request using mock vendor address
-      // In production, this would be the actual vendor's wallet address
-      const vendorAddress = getMockVendorAddress();
+      // Use connected vendor wallet address or fallback to publicKey
+      const targetVendorAddress = vendorAddress || publicKey?.toString();
+      if (!targetVendorAddress) {
+        setError('No vendor wallet address available. Please connect wallet.');
+        return;
+      }
+      
       const solAmount = nairaToSolSync(amountBN); // Convert Naira to SOL
-      const paymentRequest = createVendorPaymentRequest(
-        vendorAddress,
-        solAmount,
-        description
-      );
+      const paymentRequest = {
+        recipient: new PublicKey(targetVendorAddress),
+        amount: solAmount,
+        label: "StudyPay Campus Payment",
+        message: description,
+      };
 
       // For now, create a simple QR code since @solana/pay might have compatibility issues
       const solanaPayURL = createSolanaPayURL(paymentRequest);
@@ -228,17 +230,17 @@ export function QRPaymentGenerator({
     </Card>
   );
 }
-
 // =============================================================================
 // QR Payment Scanner (For Students)
 // =============================================================================
 
 interface QRScannerProps {
+  vendorWallet?: string; // Connected vendor wallet address
   onPaymentDetected?: (paymentURL: string) => void;
   onError?: (error: string) => void;
 }
 
-export function QRPaymentScanner({ onPaymentDetected, onError }: QRScannerProps) {
+export function QRPaymentScanner({ vendorWallet, onPaymentDetected, onError }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [manualURL, setManualURL] = useState('');
 
@@ -384,8 +386,22 @@ export function PaymentConfirmation({
       // Create optimistic success after delay (consistent with Shopping Cart)
       setTimeout(() => {
         if (paymentDetails) {
+          const signature = `mobile_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Record transaction in vendor's history
+          vendorTransactionService.addTransaction({
+            vendorWallet: paymentDetails.recipient.toString(),
+            studentWallet: 'mobile_user', // Mobile users don't have connected wallet
+            amount: paymentDetails.amount,
+            description: paymentDetails.message || paymentDetails.label || 'Mobile Payment',
+            signature: signature,
+            status: 'confirmed',
+            category: 'payment',
+            paymentMethod: 'mobile'
+          });
+          
           setPaymentSuccess({
-            signature: 'solana-pay-mobile', // Placeholder signature for mobile
+            signature: signature,
             amount: paymentDetails.amount,
             description: paymentDetails.message || paymentDetails.label || 'Mobile Payment',
           });

@@ -11,10 +11,12 @@ import { WalletGuard, WalletButton } from "@/components/wallet/WalletProvider";
 import { StudyPayIcon } from "@/lib/utils/iconMap";
 import { FoodPaymentQR } from "@/components/payments/SolanaPayQR";
 import VendorAnalyticsDashboard from "@/components/analytics/VendorAnalyticsDashboard";
+import VendorNotifications from "@/components/vendor/VendorNotifications";
 import { usePriceConversion } from "@/hooks/usePriceConversion";
 import { useVendorDashboard } from "@/hooks/vendor";
 import { useVendorPayments } from "@/hooks/vendor";
 import { useVendorAnalytics } from "@/hooks/vendor";
+import { useVendorTransactions } from "@/hooks/vendor/useVendorTransactions";
 import { BigNumber } from "bignumber.js";
 import Logo from "@/components/ui/Logo";
 
@@ -65,6 +67,17 @@ export default function VendorDashboard() {
     peakHours,
     hasPeakHours,
   } = useVendorAnalytics(completedPayments);
+
+  // Real transaction data
+  const {
+    transactions: realTransactions,
+    todaysTransactions,
+    stats: realStats,
+    loading: transactionsLoading,
+    refreshTransactions,
+    hasTransactions,
+    hasTodaysTransactions,
+  } = useVendorTransactions();
 
   return (
     <div className="min-h-screen bg-vendor-gradient">
@@ -191,6 +204,16 @@ export default function VendorDashboard() {
           )}
         </WalletGuard>
       </main>
+
+      {/* Vendor Notifications */}
+      <VendorNotifications
+        vendorWallet={publicKey?.toString()}
+        onNotificationClick={(transaction) => {
+          console.log('Notification clicked:', transaction);
+          // Could open transaction details modal here
+          refreshTransactions();
+        }}
+      />
     </div>
   );
 
@@ -223,22 +246,32 @@ export default function VendorDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-500">
-                    {completedPayments.length}
+                    {realStats.todaysSales}
                   </div>
                   <div className="text-sm text-dark-text-secondary">
-                    Transactions
+                    Transactions Today
                   </div>
+                  {realStats.pendingCount > 0 && (
+                    <div className="text-xs text-yellow-400 mt-1">
+                      {realStats.pendingCount} pending
+                    </div>
+                  )}
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-500">
-                    {formatCurrency(solToNaira(totalToday), "NGN")}
+                    {formatCurrency(solToNaira(new BigNumber(realStats.todaysRevenue)), "NGN")}
                   </div>
                   <div className="text-sm text-dark-text-secondary">
-                    Total Earned
+                    Revenue Today
                   </div>
                   <div className="text-xs text-dark-text-muted">
-                    ≈ {formatSol(totalToday)}
+                    ≈ {formatSol(new BigNumber(realStats.todaysRevenue))}
                   </div>
+                  {realStats.averageSale > 0 && (
+                    <div className="text-xs text-dark-text-muted mt-1">
+                      Avg: {formatCurrency(solToNaira(new BigNumber(realStats.averageSale)), "NGN")}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
@@ -292,45 +325,91 @@ export default function VendorDashboard() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-dark-text-primary">
               Recent Transactions
+              {transactionsLoading && (
+                <span className="ml-2 text-xs text-blue-400">Refreshing...</span>
+              )}
             </h3>
-            <Button size="sm" variant="secondary">
-              Export Data
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="secondary"
+                onClick={refreshTransactions}
+                disabled={transactionsLoading}
+              >
+                {transactionsLoading ? '🔄' : '🔄 Refresh'}
+              </Button>
+              <Button size="sm" variant="secondary">
+                Export Data
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3">
-            {completedPayments.map((payment) => (
+            {todaysTransactions.slice(0, 5).map((transaction) => (
               <div
-                key={payment.id}
-                className="flex items-center justify-between p-3 bg-dark-bg-tertiary rounded-lg"
+                key={transaction.id}
+                className="flex items-center justify-between p-3 bg-dark-bg-tertiary rounded-lg border border-dark-border-primary"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl">🍽️</div>
+                  <div className="text-2xl">
+                    {transaction.paymentMethod === 'mobile' ? '📱' : '💻'}
+                  </div>
                   <div>
                     <div className="font-medium text-sm text-dark-text-primary">
-                      {payment.description}
+                      {transaction.description}
                     </div>
                     <div className="text-xs text-dark-text-muted">
-                      {payment.time.toLocaleTimeString()} • Student:{" "}
-                      {payment.studentId}
+                      {transaction.timestamp.toLocaleTimeString()} • 
+                      {transaction.studentWallet === 'mobile_user' 
+                        ? ' Mobile Payment' 
+                        : ` ${transaction.studentWallet?.slice(0, 8)}...`}
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono">
+                      {transaction.signature.slice(0, 12)}...
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-semibold text-green-500">
-                    +{formatCurrency(solToNaira(payment.amount), "NGN")}
+                  <div className={`font-semibold ${
+                    transaction.status === 'confirmed' ? 'text-green-500' : 
+                    transaction.status === 'pending' ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    +{formatCurrency(solToNaira(transaction.amount), "NGN")}
                   </div>
                   <div className="text-xs text-dark-text-muted">
-                    ≈ {formatSol(payment.amount)}
+                    ≈ {formatSol(transaction.amount)}
                   </div>
+                  <Badge 
+                    variant={transaction.status === 'confirmed' ? 'success' : 'warning'}
+                    className="text-xs mt-1"
+                  >
+                    {transaction.status}
+                  </Badge>
                 </div>
               </div>
             ))}
 
-            {completedPayments.length === 0 && (
+            {todaysTransactions.length === 0 && !transactionsLoading && (
               <div className="text-center py-8 text-dark-text-secondary">
-                No transactions today. Create a payment request to get started!
+                <div className="text-4xl mb-2">💳</div>
+                <p>No transactions today yet.</p>
+                <p className="text-sm mt-1">Create a payment request to get started!</p>
+              </div>
+            )}
+
+            {transactionsLoading && todaysTransactions.length === 0 && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-solana-purple-500 mx-auto mb-2"></div>
+                <p className="text-dark-text-secondary">Loading transactions...</p>
+              </div>
+            )}
+
+            {todaysTransactions.length > 5 && (
+              <div className="text-center pt-3 border-t border-dark-border-primary">
+                <Button variant="secondary" size="sm">
+                  View All {todaysTransactions.length} Transactions
+                </Button>
               </div>
             )}
           </div>

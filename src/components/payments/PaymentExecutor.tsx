@@ -20,6 +20,7 @@ import {
 import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
+import { vendorTransactionService } from '@/lib/services/vendorTransactionService';
 
 // Helper function to update QR payment status for real-time vendor feedback
 function updateQRPaymentStatus(vendorAddress: string, signature: string) {
@@ -156,6 +157,18 @@ export function PaymentExecutor({
         
         // Update any matching QR status for real-time vendor feedback
         updateQRPaymentStatus(paymentRequest.recipient.toString(), result.signature);
+        
+        // Record transaction in vendor's history
+        vendorTransactionService.addTransaction({
+          vendorWallet: paymentRequest.recipient.toString(),
+          studentWallet: wallet.publicKey?.toString(),
+          amount: paymentRequest.amount,
+          description: paymentRequest.message || paymentRequest.label || 'Campus Payment',
+          signature: result.signature,
+          status: 'confirmed',
+          category: 'payment',
+          paymentMethod: 'desktop'
+        });
         
         onSuccess(result.signature);
       } else {

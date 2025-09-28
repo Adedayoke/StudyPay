@@ -1,5 +1,4 @@
 /**
- * Marketplace Page - Campus Vendor Marketplace
  * Complete vendor discovery and browsing interface
  */
 
@@ -10,10 +9,11 @@ import { Card, Button, Input, Badge } from '@/components/ui';
 import { vendorRegistry, VendorProfile, VendorSearchFilters } from '@/lib/vendors/vendorRegistry';
 import { StudyPayIcon } from '@/lib/utils/iconMap';
 import BigNumber from 'bignumber.js';
-import Logo from '@/components/ui/Logo';
+import AppHeader from '@/components/layout/AppHeader';
 import { Search, Filter, MapPin, Clock, Star, Phone } from 'lucide-react';
 import { useDataLoader } from '@/hooks/useDataLoader';
 import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { useVendorsStatus } from '@/hooks/useVendorStatus';
 import { useRouter } from 'next/navigation';
 import AIRecommendations from '@/components/ai/AIRecommendations';
 
@@ -38,6 +38,9 @@ export default function MarketplacePage() {
   );
 
   const [filteredVendors, setFilteredVendors] = useState<VendorProfile[]>([]);
+  
+  // Use vendor status hook for all vendors
+  const vendorStatuses = useVendorsStatus(filteredVendors);
 
   // Filter vendors when search, category, or vendors data changes
   useEffect(() => {
@@ -83,35 +86,6 @@ export default function MarketplacePage() {
     { value: 'printing', label: 'Printing', icon: 'printing' },
   ];
 
-  const getVendorStatusColor = (vendor: VendorProfile) => {
-    const now = new Date();
-    const currentDay = now
-      .toLocaleDateString("en", { weekday: "long" })
-      .toLowerCase();
-    const currentTime = now.toTimeString().slice(0, 5);
-
-    const isOpen =
-      vendor.operatingHours.days.includes(currentDay) &&
-      currentTime >= vendor.operatingHours.open &&
-      currentTime <= vendor.operatingHours.close;
-
-    return isOpen ? "text-green-500" : "text-yellow-500";
-  };
-
-  const getVendorStatusText = (vendor: VendorProfile) => {
-    const now = new Date();
-    const currentDay = now
-      .toLocaleDateString("en", { weekday: "long" })
-      .toLowerCase();
-    const currentTime = now.toTimeString().slice(0, 5);
-
-    const isOpen =
-      vendor.operatingHours.days.includes(currentDay) &&
-      currentTime >= vendor.operatingHours.open &&
-      currentTime <= vendor.operatingHours.close;
-
-    return isOpen ? "Open" : "Closed";
-  };
 
   const getCurrentTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
     const hour = new Date().getHours();
@@ -142,22 +116,7 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-dark-bg-secondary text-white">
-      {/* Header */}
-      <header className="bg-dark-bg-secondary shadow-dark border-b border-dark-border-primary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Logo />
-            <div className="flex items-center space-x-4">
-              <Badge variant="secondary" className="bg-solana-purple-500/20 text-solana-purple-400">
-                <div className="flex items-center gap-1">
-                  <StudyPayIcon name="store" size={14} />
-                  <span>Campus Marketplace</span>
-                </div>
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader variant="marketplace" showWallet={false} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -264,15 +223,14 @@ export default function MarketplacePage() {
                         <Badge variant="secondary" className="text-xs">
                           {vendor.category}
                         </Badge>
-                        <div className={`flex items-center gap-1 text-xs ${getVendorStatusColor(vendor)}`}>
-                          <div className={`w-2 h-2 rounded-full ${getVendorStatusText(vendor) === 'Open' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                          {getVendorStatusText(vendor)}
+                        <div className={`flex items-center gap-1 text-xs ${vendorStatuses[vendor.id]?.statusColor || 'text-gray-500'}`}>
+                          <div className={`w-2 h-2 rounded-full ${vendorStatuses[vendor.id]?.isOpen ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                          {vendorStatuses[vendor.id]?.statusText || 'Unknown'}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="text-sm text-gray-300">{vendor.rating.average}</span>
                     </div>
                   </div>
 
