@@ -185,7 +185,7 @@ export default function MarketplacePage() {
         {/* AI Recommendations */}
         {!isLoading && !searchTerm && !selectedCategory && (
           <AIRecommendations
-            onVendorClick={(vendorId) => router.push(`/student?vendor=${vendorId}`)}
+            onVendorClick={(vendorId) => router.push(`/student?vendors=true&vendorId=${vendorId}`)}
             context={{
               timeOfDay: getCurrentTimeOfDay(),
               urgency: 'medium'

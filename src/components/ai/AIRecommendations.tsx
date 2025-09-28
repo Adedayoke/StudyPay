@@ -182,7 +182,13 @@ export default function AIRecommendations({ onVendorClick, context }: AIRecommen
                   {currencyFormatter.formatSol(rec.estimatedCost)}
                 </span>
               </div>
-              <Button size="sm">
+              <Button 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click from firing
+                  onVendorClick(rec.vendorId); // Same action as card click
+                }}
+              >
                 View Menu
               </Button>
             </div>
