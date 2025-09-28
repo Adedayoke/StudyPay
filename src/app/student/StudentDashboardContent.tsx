@@ -72,7 +72,8 @@ export default function StudentDashboardContent() {
     closeScanner,
   } = useQRPayment();
   const [cartItemCount, setCartItemCount] = useState(0);
-  const [navMenu, setNavMenu] = useState(false);
+  const [navMenu, setNavMenu] = useState(false)
+  const [urlParamsProcessed, setUrlParamsProcessed] = useState(false);;
   const ref = useOutsideClick(() => setNavMenu(false));
 
   // Update cart count
@@ -86,8 +87,10 @@ export default function StudentDashboardContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle URL parameters for vendor navigation
+  // Handle URL parameters for vendor navigation (only once)
   useEffect(() => {
+    if (urlParamsProcessed) return; // Only process URL params once
+
     const vendorId = searchParams.get("vendorId");
     const vendorsParam = searchParams.get("vendors");
 
@@ -109,8 +112,9 @@ export default function StudentDashboardContent() {
       };
 
       loadVendor();
+      setUrlParamsProcessed(true); // Mark as processed
     }
-  }, [searchParams, setActiveTab, handleVendorSelect]);
+  }, [searchParams, setActiveTab, handleVendorSelect, urlParamsProcessed]);
 
   return (
     <div className="min-h-screen bg-student-gradient">

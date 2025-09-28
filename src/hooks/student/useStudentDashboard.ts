@@ -27,6 +27,8 @@ export const useStudentDashboard = () => {
 
   const handleVendorClose = () => {
     setSelectedVendor(null);
+    // Switch back to overview when closing vendor details
+    dashboard.setActiveTab('overview');
   };
 
   // Refresh after payment with notifications
