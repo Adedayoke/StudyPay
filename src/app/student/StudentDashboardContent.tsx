@@ -9,8 +9,8 @@ import BudgetAssistant from "@/components/ai/BudgetAssistant";
 import StudentInsightsDashboard from "@/components/analytics/StudentInsightsDashboard";
 import ShoppingCart from "@/components/cart/ShoppingCart";
 import {
-    PaymentConfirmation,
-    SolanaPayScanner,
+  PaymentConfirmation,
+  SolanaPayScanner,
 } from "@/components/payments/SolanaPayQR";
 import TransactionHistory from "@/components/transactions/TransactionHistory";
 import { Alert, Badge, Button, Card } from "@/components/ui";
@@ -19,6 +19,7 @@ import VendorDiscovery from "@/components/vendors/VendorDiscovery";
 import VendorProfileView from "@/components/vendors/VendorProfileView";
 import { WalletButton, WalletGuard } from "@/components/wallet/WalletProvider";
 import { useQRPayment, useStudentDashboard } from "@/hooks/student";
+import { useOutsideClick } from "@/hooks/useClickOutside";
 import { cartService } from "@/lib/services/cartService";
 import { StudyPayIcon } from "@/lib/utils/iconMap";
 import { vendorRegistry } from "@/lib/vendors/vendorRegistry";
@@ -26,10 +27,10 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { BigNumber } from "bignumber.js";
 import { Menu, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { LegacyRef, useEffect, useState } from "react";
 
 // Force dynamic rendering to avoid SSR issues with useSearchParams
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function StudentDashboardContent() {
   const { publicKey } = useWallet();
@@ -57,7 +58,7 @@ export default function StudentDashboardContent() {
     solToNaira,
     formatCurrency,
     formatNaira,
-    formatSol
+    formatSol,
   } = useStudentDashboard();
 
   const {
@@ -71,7 +72,8 @@ export default function StudentDashboardContent() {
     closeScanner,
   } = useQRPayment();
   const [cartItemCount, setCartItemCount] = useState(0);
-  const [navMenu, setNavMenu] = useState(false)
+  const [navMenu, setNavMenu] = useState(false);
+  const ref = useOutsideClick(() => setNavMenu(false));
 
   // Update cart count
   useEffect(() => {
@@ -86,23 +88,23 @@ export default function StudentDashboardContent() {
 
   // Handle URL parameters for vendor navigation
   useEffect(() => {
-    const vendorId = searchParams.get('vendorId');
-    const vendorsParam = searchParams.get('vendors');
+    const vendorId = searchParams.get("vendorId");
+    const vendorsParam = searchParams.get("vendors");
 
-    if (vendorId && vendorsParam === 'true') {
+    if (vendorId && vendorsParam === "true") {
       // Switch to vendors tab
-      setActiveTab('vendors');
+      setActiveTab("vendors");
 
       // Find and select the vendor
       const loadVendor = async () => {
         try {
           const vendors = await vendorRegistry.getAllVendors();
-          const vendor = vendors.find(v => v.id === vendorId);
+          const vendor = vendors.find((v) => v.id === vendorId);
           if (vendor) {
             handleVendorSelect(vendor);
           }
         } catch (error) {
-          console.error('Error loading vendor from URL:', error);
+          console.error("Error loading vendor from URL:", error);
         }
       };
 
@@ -135,7 +137,7 @@ export default function StudentDashboardContent() {
                   </Badge>
                 )}
               </Button>
-              
+
               {/* <PWAStatusIndicator /> */}
               {/* <Badge variant="success">Student</Badge> */}
               <WalletButton />
@@ -159,7 +161,10 @@ export default function StudentDashboardContent() {
                   <Menu onClick={() => setNavMenu(!navMenu)} />
                 )}
                 {navMenu && (
-                  <ul className="absolute right-0 mt-2 w-52 bg-dark-bg-secondary border border-dark-border-primary rounded-lg shadow-lg z-10 p-2 flex flex-col gap-2">
+                  <ul
+                    ref={ref}
+                    className="absolute right-0 mt-2 w-52 bg-dark-bg-secondary border border-dark-border-primary rounded-lg shadow-lg z-10 p-2 flex flex-col gap-2"
+                  >
                     <li
                       onClick={() => setActiveTab("overview")}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -296,8 +301,7 @@ export default function StudentDashboardContent() {
                       )}
                     </div>
                     <div className="text-lg text-gray-600">
-                      ≈{" "}
-                      {formatCurrency(new BigNumber(balance), "SOL")}
+                      ≈ {formatCurrency(new BigNumber(balance), "SOL")}
                     </div>
                     <Button
                       onClick={refreshBalance}
@@ -402,7 +406,11 @@ export default function StudentDashboardContent() {
               {transactions.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="flex justify-center mb-2">
-                    <StudyPayIcon name="analytics" size={48} className="text-gray-400" />
+                    <StudyPayIcon
+                      name="analytics"
+                      size={48}
+                      className="text-gray-400"
+                    />
                   </div>
                   <p className="text-gray-600">No transactions yet</p>
                   <p className="text-sm text-gray-500 mt-1">
@@ -513,14 +521,62 @@ export default function StudentDashboardContent() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className="text-2xl">
-                          {tx.category === "food" && <StudyPayIcon name="food" size={24} className="text-orange-500" />}
-                          {tx.category === "transport" && <StudyPayIcon name="transport" size={24} className="text-blue-500" />}
-                          {tx.category === "books" && <StudyPayIcon name="books" size={24} className="text-green-500" />}
-                          {tx.category === "services" && <StudyPayIcon name="services" size={24} className="text-purple-500" />}
-                          {tx.category === "electronics" && <StudyPayIcon name="other" size={24} className="text-gray-500" />}
-                          {tx.category === "printing" && <StudyPayIcon name="other" size={24} className="text-gray-500" />}
-                          {tx.category === "micro" && <StudyPayIcon name="money" size={24} className="text-yellow-500" />}
-                          {tx.category === "snacks" && <StudyPayIcon name="food" size={24} className="text-red-500" />}
+                          {tx.category === "food" && (
+                            <StudyPayIcon
+                              name="food"
+                              size={24}
+                              className="text-orange-500"
+                            />
+                          )}
+                          {tx.category === "transport" && (
+                            <StudyPayIcon
+                              name="transport"
+                              size={24}
+                              className="text-blue-500"
+                            />
+                          )}
+                          {tx.category === "books" && (
+                            <StudyPayIcon
+                              name="books"
+                              size={24}
+                              className="text-green-500"
+                            />
+                          )}
+                          {tx.category === "services" && (
+                            <StudyPayIcon
+                              name="services"
+                              size={24}
+                              className="text-purple-500"
+                            />
+                          )}
+                          {tx.category === "electronics" && (
+                            <StudyPayIcon
+                              name="other"
+                              size={24}
+                              className="text-gray-500"
+                            />
+                          )}
+                          {tx.category === "printing" && (
+                            <StudyPayIcon
+                              name="other"
+                              size={24}
+                              className="text-gray-500"
+                            />
+                          )}
+                          {tx.category === "micro" && (
+                            <StudyPayIcon
+                              name="money"
+                              size={24}
+                              className="text-yellow-500"
+                            />
+                          )}
+                          {tx.category === "snacks" && (
+                            <StudyPayIcon
+                              name="food"
+                              size={24}
+                              className="text-red-500"
+                            />
+                          )}
                           {![
                             "food",
                             "transport",
@@ -530,7 +586,13 @@ export default function StudentDashboardContent() {
                             "printing",
                             "micro",
                             "snacks",
-                          ].includes(tx.category) && <StudyPayIcon name="payment" size={24} className="text-gray-400" />}
+                          ].includes(tx.category) && (
+                            <StudyPayIcon
+                              name="payment"
+                              size={24}
+                              className="text-gray-400"
+                            />
+                          )}
                         </div>
                         <div>
                           <div className="font-medium text-sm text-dark-text-primary">
@@ -564,8 +626,8 @@ export default function StudentDashboardContent() {
                               : "text-red-400"
                           }`}
                         >
-                          {tx.type === "incoming" ? "+" : "-"}
-                          ₦{solToNaira(tx.amount).toFixed(0)}
+                          {tx.type === "incoming" ? "+" : "-"}₦
+                          {solToNaira(tx.amount).toFixed(0)}
                         </div>
                         <div className="text-xs text-dark-text-secondary">
                           ≈ {formatCurrency(tx.amount, "SOL")}
@@ -631,9 +693,24 @@ export default function StudentDashboardContent() {
                 }, {} as Record<string, BigNumber>);
 
               const categories = [
-                { key: "food", icon: "food", label: "Food & Drinks", color: "text-orange-500" },
-                { key: "transport", icon: "transport", label: "Transport", color: "text-blue-500" },
-                { key: "books", icon: "books", label: "Academic", color: "text-green-500" },
+                {
+                  key: "food",
+                  icon: "food",
+                  label: "Food & Drinks",
+                  color: "text-orange-500",
+                },
+                {
+                  key: "transport",
+                  icon: "transport",
+                  label: "Transport",
+                  color: "text-blue-500",
+                },
+                {
+                  key: "books",
+                  icon: "books",
+                  label: "Academic",
+                  color: "text-green-500",
+                },
               ] as const;
 
               return categories.map((category) => (
@@ -642,14 +719,20 @@ export default function StudentDashboardContent() {
                   className="text-center bg-dark-bg-secondary border-dark-border-primary"
                 >
                   <div className="flex justify-center mb-2">
-                    <StudyPayIcon name={category.icon} size={32} className={category.color} />
+                    <StudyPayIcon
+                      name={category.icon}
+                      size={32}
+                      className={category.color}
+                    />
                   </div>
                   <div className="text-sm text-dark-text-secondary">
                     {category.label}
                   </div>
                   <div className="font-semibold text-dark-text-primary">
                     {categorySpending[category.key]
-                      ? `₦${solToNaira(categorySpending[category.key]).toFixed(0)}`
+                      ? `₦${solToNaira(categorySpending[category.key]).toFixed(
+                          0
+                        )}`
                       : "₦0"}
                   </div>
                   <div className="text-xs text-dark-text-secondary mt-1">
