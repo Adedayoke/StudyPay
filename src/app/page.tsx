@@ -58,19 +58,19 @@ export default function HomePage() {
               variant="primary"
               size="lg"
               className="bg-gradient-to-r from-solana-purple-500 to-solana-green-500 hover:from-solana-purple-600 hover:to-solana-green-600 text-white font-semibold px-8 py-4 text-lg"
-              onClick={() => window.open("/student", "_blank")}
+              onClick={() => window.open("/marketplace", "_blank")}
             >
-              <StudyPayIcon name="student" size={24} className="mr-3" />
-              Try Student Demo
+              <StudyPayIcon name="store" size={24} className="mr-3" />
+              Try Campus Marketplace
             </Button>
             <Button
               variant="secondary"
               size="lg"
               className="border-solana-purple-400/50 text-solana-purple-300 hover:bg-solana-purple-500/10 px-8 py-4 text-lg"
-              onClick={() => window.open("/parent", "_blank")}
+              onClick={() => window.open("/student", "_blank")}
             >
-              <StudyPayIcon name="parent" size={24} className="mr-3" />
-              Parent Dashboard
+              <StudyPayIcon name="student" size={24} className="mr-3" />
+              Student Dashboard
             </Button>
           </div>
         </div>
