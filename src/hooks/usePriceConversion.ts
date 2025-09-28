@@ -83,7 +83,7 @@ export function usePriceConversion() {
       };
     } catch (error) {
       return {
-        amount: solAmount.multipliedBy(50000), // Fallback
+        amount: solAmount.multipliedBy(300000), // Fallback
         isLoading: false,
         error: error instanceof Error ? error.message : 'Conversion failed',
         lastUpdated: priceState.lastUpdated,

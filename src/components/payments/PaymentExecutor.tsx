@@ -21,6 +21,30 @@ import { useStudyPayWallet } from '@/components/wallet/WalletProvider';
 import { addTransaction, updateTransaction } from '@/lib/utils/transactionStorage';
 import { Transaction } from '@/lib/types/payment';
 
+// Helper function to update QR payment status for real-time vendor feedback
+function updateQRPaymentStatus(vendorAddress: string, signature: string) {
+  try {
+    // Find all QR transactions for this vendor
+    const allKeys = Object.keys(localStorage);
+    const qrKeys = allKeys.filter(key => key.startsWith('studypay_qr_'));
+    
+    qrKeys.forEach(key => {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const transactionInfo = JSON.parse(stored);
+        if (transactionInfo.vendorAddress === vendorAddress && transactionInfo.status === 'pending') {
+          transactionInfo.status = 'completed';
+          transactionInfo.signature = signature;
+          localStorage.setItem(key, JSON.stringify(transactionInfo));
+          console.log('✅ Updated QR status for vendor:', vendorAddress);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error updating QR payment status:', error);
+  }
+}
+
 // =============================================================================
 // Payment Executor Component
 // =============================================================================
@@ -129,6 +153,10 @@ export function PaymentExecutor({
           status: 'confirmed',
           signature: result.signature
         });
+        
+        // Update any matching QR status for real-time vendor feedback
+        updateQRPaymentStatus(paymentRequest.recipient.toString(), result.signature);
+        
         onSuccess(result.signature);
       } else {
         // Update transaction as failed

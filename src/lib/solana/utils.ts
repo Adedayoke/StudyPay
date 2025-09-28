@@ -321,7 +321,7 @@ export async function solToNaira(solAmount: BigNumber): Promise<BigNumber> {
   } catch (error) {
     console.warn('Using fallback conversion rate:', error);
     // Fallback to mock rate if API fails
-    return solAmount.multipliedBy(50000);
+    return solAmount.multipliedBy(300000);
   }
 }
 
@@ -336,7 +336,7 @@ export function solToNairaSync(solAmount: BigNumber): BigNumber {
   }
 
   // Fallback to mock rate if no cached data
-  return solAmount.multipliedBy(50000);
+  return solAmount.multipliedBy(300000);
 }
 
 /**

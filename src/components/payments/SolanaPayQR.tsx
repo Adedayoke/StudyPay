@@ -9,8 +9,10 @@ import React, { useState, useRef, useEffect } from 'react';
 // Using native browser APIs for better mobile compatibility
 import { Card, Button, Input, Alert } from '@/components/ui';
 import MobileQRScanner from './MobileQRScanner';
-import { PublicKey, Keypair } from '@solana/web3.js';
+import { PublicKey, Keypair, Connection } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
+import { Check, Clock, RefreshCw } from 'lucide-react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { 
   generateSolanaPayQR,
   createSolanaPayTransactionRequest,
@@ -50,6 +52,110 @@ export function SolanaPayQRGenerator({
   const [paymentURL, setPaymentURL] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Real-time status tracking
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed'>('pending');
+  const [paymentSignature, setPaymentSignature] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [expectedAmount, setExpectedAmount] = useState<BigNumber | null>(null);
+  const [vendorPublicKey, setVendorPublicKey] = useState<PublicKey | null>(null);
+  
+  // Solana connection for blockchain monitoring
+  const { connection } = useConnection();
+
+  // Blockchain monitoring for real payments
+  useEffect(() => {
+    if (!vendorPublicKey || !expectedAmount || !connection || paymentStatus !== 'pending') {
+      return;
+    }
+
+    const monitorBlockchain = async () => {
+      try {
+        // Get recent transactions for the vendor address
+        const signatures = await connection.getSignaturesForAddress(vendorPublicKey, {
+          limit: 10,
+        });
+
+        // Check transactions from the last 5 minutes
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        
+        for (const sigInfo of signatures) {
+          if (!sigInfo.blockTime) continue;
+          
+          const txTime = sigInfo.blockTime * 1000;
+          if (txTime < fiveMinutesAgo) continue;
+
+          try {
+            const txDetails = await connection.getTransaction(sigInfo.signature, {
+              maxSupportedTransactionVersion: 0,
+            });
+
+            if (txDetails && isMatchingPayment(txDetails, expectedAmount)) {
+              // Found matching payment!
+              setPaymentStatus('completed');
+              setPaymentSignature(sigInfo.signature);
+              
+              // Update localStorage for consistency
+              if (transactionId) {
+                const stored = localStorage.getItem(`studypay_qr_${transactionId}`);
+                if (stored) {
+                  const transactionInfo = JSON.parse(stored);
+                  transactionInfo.status = 'completed';
+                  transactionInfo.signature = sigInfo.signature;
+                  localStorage.setItem(`studypay_qr_${transactionId}`, JSON.stringify(transactionInfo));
+                }
+              }
+              
+              console.log('✅ Real blockchain payment detected:', sigInfo.signature);
+              return;
+            }
+          } catch (error) {
+            console.warn('Error fetching transaction details:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error monitoring blockchain:', error);
+      }
+    };
+
+    // Start monitoring after 10 seconds (give time for payment to be made)
+    const timeout = setTimeout(monitorBlockchain, 10000);
+    
+    // Then monitor every 15 seconds
+    const interval = setInterval(monitorBlockchain, 15000);
+
+    // Cleanup
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [vendorPublicKey, expectedAmount, connection, paymentStatus, transactionId]);
+
+  // Helper function to check if transaction matches expected payment
+  const isMatchingPayment = (txDetails: any, expectedAmount: BigNumber): boolean => {
+    try {
+      const postBalances = txDetails.meta?.postBalances || [];
+      const preBalances = txDetails.meta?.preBalances || [];
+      
+      // Look for balance changes that match our expected amount (within 5% tolerance)
+      for (let i = 0; i < postBalances.length; i++) {
+        const balanceChange = postBalances[i] - preBalances[i];
+        if (balanceChange > 0) {
+          const changeInSol = new BigNumber(balanceChange).dividedBy(1e9);
+          const tolerance = expectedAmount.multipliedBy(0.05); // 5% tolerance
+          
+          if (changeInSol.minus(expectedAmount).abs().lte(tolerance)) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking transaction match:', error);
+      return false;
+    }
+  };
 
   const generateQR = async () => {
     if (!amount || !description) {
@@ -95,6 +201,28 @@ export function SolanaPayQRGenerator({
       
       setQrCodeDataURL(qrDataURL);
       setPaymentURL(solanaPayURL.toString());
+      
+      // Create transaction ID for status tracking
+      const txId = `qr_${recipientWallet}_${Date.now()}`;
+      setTransactionId(txId);
+      setPaymentStatus('pending');
+      
+      // Set blockchain monitoring parameters
+      setExpectedAmount(solAmount);
+      setVendorPublicKey(new PublicKey(recipientWallet));
+      
+      // Store transaction info in localStorage for status tracking
+      const transactionInfo = {
+        id: txId,
+        vendorAddress: recipientWallet,
+        amount: solAmount.toString(),
+        description,
+        status: 'pending',
+        timestamp: Date.now(),
+        paymentURL: solanaPayURL.toString()
+      };
+      localStorage.setItem(`studypay_qr_${txId}`, JSON.stringify(transactionInfo));
+      
       onPaymentGenerated?.(solanaPayURL.toString());
 
     } catch (err) {
@@ -111,6 +239,13 @@ export function SolanaPayQRGenerator({
     setAmount('');
     setDescription('');
     setError('');
+    
+    // Reset status tracking
+    setPaymentStatus('pending');
+    setPaymentSignature(null);
+    setTransactionId(null);
+    setExpectedAmount(null);
+    setVendorPublicKey(null);
   };
 
   const copyToClipboard = async () => {
@@ -191,14 +326,62 @@ export function SolanaPayQRGenerator({
         </div>
       ) : (
         <div className="text-center space-y-4">
-          <div className="bg-white p-4 rounded-lg border-2 border-solana-purple-500 inline-block">
-            <img 
-              src={qrCodeDataURL} 
-              alt="Official Solana Pay QR Code" 
-              className="block mx-auto"
-              width={256}
-              height={256}
-            />
+          {/* Status Header */}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {paymentStatus === 'pending' && (
+              <>
+                <Clock size={16} className="text-yellow-400 animate-pulse" />
+                <span className="text-sm text-yellow-400">Waiting for Payment...</span>
+              </>
+            )}
+            {paymentStatus === 'completed' && (
+              <>
+                <Check size={16} className="text-green-400" />
+                <span className="text-sm text-green-400">Payment Completed!</span>
+              </>
+            )}
+            {paymentStatus === 'failed' && (
+              <>
+                <span className="text-sm text-red-400">Payment Failed</span>
+              </>
+            )}
+          </div>
+
+          {/* QR Code or Success Animation */}
+          <div className="relative">
+            {paymentStatus === 'pending' ? (
+              <div className="bg-white p-4 rounded-lg border-2 border-solana-purple-500 inline-block transition-all duration-500">
+                <img 
+                  src={qrCodeDataURL} 
+                  alt="Official Solana Pay QR Code" 
+                  className="block mx-auto"
+                  width={256}
+                  height={256}
+                />
+              </div>
+            ) : paymentStatus === 'completed' ? (
+              <div className="bg-green-500/20 border-2 border-green-400 rounded-lg w-72 h-72 mx-auto flex items-center justify-center transition-all duration-500 transform scale-105">
+                <div className="text-center">
+                  <Check size={80} className="text-green-400 mx-auto animate-bounce mb-4" />
+                  <div className="text-green-400 font-semibold text-xl">
+                    Payment Received!
+                  </div>
+                  {paymentSignature && (
+                    <div className="text-xs text-gray-400 mt-2 font-mono break-all max-w-48">
+                      {paymentSignature.slice(0, 8)}...{paymentSignature.slice(-8)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-red-500/20 border-2 border-red-400 rounded-lg w-72 h-72 mx-auto flex items-center justify-center transition-all duration-500">
+                <div className="text-center">
+                  <div className="text-red-400 font-semibold text-xl">
+                    Payment Failed
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="text-sm text-dark-text-secondary">
@@ -212,6 +395,11 @@ export function SolanaPayQRGenerator({
             <p className="text-xs text-dark-text-muted mt-1">
               🔒 Official Solana Pay Protocol
             </p>
+            {transactionId && (
+              <p className="text-xs text-gray-500 mt-1">
+                ID: {transactionId.slice(-8)}
+              </p>
+            )}
           </div>
           
           <div className="flex space-x-2">
@@ -220,7 +408,7 @@ export function SolanaPayQRGenerator({
               variant="secondary"
               className="flex-1"
             >
-              New Payment
+              {paymentStatus === 'completed' ? 'New Payment' : 'Reset'}
             </Button>
             <Button 
               onClick={copyToClipboard}
@@ -230,6 +418,22 @@ export function SolanaPayQRGenerator({
               Copy Link
             </Button>
           </div>
+
+          {/* Blockchain Monitoring Status */}
+          {paymentStatus === 'pending' && (
+            <div className="mt-4 p-3 bg-dark-bg-tertiary rounded-lg border border-dark-border-secondary">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-blue-400 font-medium">Monitoring Blockchain</span>
+              </div>
+              <div className="text-xs text-gray-400 space-y-1">
+                <div>• Checking Solana network every 15 seconds</div>
+                <div>• Looking for payments to: {vendorPublicKey?.toString().slice(0, 8)}...{vendorPublicKey?.toString().slice(-8)}</div>
+                <div>• Expected amount: {expectedAmount?.toFixed(4)} SOL</div>
+                <div>• Auto-detects real payments within 5% tolerance</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Card>
