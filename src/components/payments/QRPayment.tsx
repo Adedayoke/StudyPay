@@ -354,6 +354,15 @@ export function PaymentConfirmation({
     description: string;
   } | null>(null);
 
+  // Device detection for dual implementation
+  const isMobile = typeof window !== 'undefined' && (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && 'ontouchstart' in window)
+  );
+
+  // Choose payment method based on device (consistent with Shopping Cart)
+  const useSolanaPay = isMobile;
+
   useEffect(() => {
     if (paymentURL) {
       const parsed = parseSolanaPayURL(paymentURL);
@@ -364,7 +373,31 @@ export function PaymentConfirmation({
   }, [paymentURL]);
 
   const handleConfirmPayment = () => {
-    setShowExecutor(true);
+    if (useSolanaPay) {
+      // 📱 Mobile: Open Solana Pay URL in external wallet (like Shopping Cart)
+      console.log('📱 Using Solana Pay method for mobile scan & pay');
+      console.log('Opening Solana Pay URL:', paymentURL);
+      
+      // Open the original Solana Pay URL in external wallet
+      window.open(paymentURL, '_blank');
+      
+      // Create optimistic success after delay (like Shopping Cart)
+      setTimeout(() => {
+        if (paymentDetails) {
+          setPaymentSuccess({
+            signature: 'solana-pay-mobile', // Placeholder signature for mobile
+            amount: paymentDetails.amount,
+            description: paymentDetails.message || paymentDetails.label || 'Mobile Payment',
+          });
+          onConfirm(); // Notify parent component
+        }
+      }, 2000);
+      
+    } else {
+      // 💻 Desktop: Use PaymentExecutor for direct wallet connection
+      console.log('💻 Using direct payment method for desktop scan & pay');
+      setShowExecutor(true);
+    }
   };
 
   const handlePaymentSuccess = (signature: string) => {
@@ -425,9 +458,18 @@ export function PaymentConfirmation({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <Card className="max-w-md w-full">
-        <h3 className="text-lg font-semibold mb-4 text-dark-text-primary">
-          Confirm Payment
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-dark-text-primary">
+            Confirm Payment
+          </h3>
+          <div className={`text-xs px-2 py-1 rounded-full ${
+            useSolanaPay
+              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+              : 'bg-green-500/20 text-green-400 border border-green-500/30'
+          }`}>
+            {useSolanaPay ? '📱 Mobile Optimized' : '💻 Desktop Optimized'}
+          </div>
+        </div>
         
         <div className="space-y-3 mb-6">
           <div>
@@ -447,6 +489,28 @@ export function PaymentConfirmation({
           <div>
             <span className="text-dark-text-secondary">Description:</span>
             <div className="text-dark-text-primary">{paymentDetails.message || paymentDetails.label}</div>
+          </div>
+
+          {/* Payment Method Description */}
+          <div className="bg-dark-bg-tertiary p-3 rounded-lg border border-dark-border-secondary">
+            <div className="text-xs text-dark-text-secondary mb-1">Payment Method:</div>
+            <div className="text-sm text-dark-text-primary">
+              {useSolanaPay ? (
+                <>
+                  <span className="text-blue-400">📱 Solana Pay (Mobile)</span>
+                  <div className="text-xs text-dark-text-muted mt-1">
+                    Will open your wallet app to complete the payment
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-green-400">💻 Direct Transfer (Desktop)</span>
+                  <div className="text-xs text-dark-text-muted mt-1">
+                    Will use your connected wallet to sign the transaction
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
         
