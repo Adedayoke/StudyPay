@@ -140,7 +140,7 @@ The solution reduces costs by 90%+ compared to traditional remittance services w
 
 ## Competition
 
-**Built for**: Solana + AI Development Hackathon 2025  
+**Built for**: Solana x AI Students Hack  
 **Track**: Campus Tools with Solana Pay  
 **Developer**: Oke Habeeb (Lagos State University)
 
