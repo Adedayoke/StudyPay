@@ -197,7 +197,7 @@ export default function StudentDashboardContent() {
                     <li
                       onClick={() => {
                         setActiveTab("vendors");
-                        handleVendorClose();
+                        // handleVendorClose();
                       }}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
                         activeTab === "vendors"
