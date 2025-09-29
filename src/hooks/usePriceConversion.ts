@@ -28,7 +28,7 @@ interface PriceConversionResult {
 
 export function usePriceConversion() {
   const [priceState, setPriceState] = useState<PriceState>({
-    solToNgn: 50000, // Fallback rate
+    solToNgn: 300000, // Fallback rate
     solToUsd: 150,   // Fallback rate
     lastUpdated: 0,
     isStale: true,
@@ -105,7 +105,7 @@ export function usePriceConversion() {
       };
     } catch (error) {
       return {
-        amount: nairaAmount.dividedBy(50000), // Fallback
+        amount: nairaAmount.dividedBy(300000), // Fallback
         isLoading: false,
         error: error instanceof Error ? error.message : 'Conversion failed',
         lastUpdated: priceState.lastUpdated,

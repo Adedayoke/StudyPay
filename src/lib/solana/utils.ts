@@ -286,7 +286,7 @@ class PriceService {
     // Fallback to mock rates if all APIs fail
     console.warn('Using fallback mock prices');
     return {
-      solToNgn: 50000, // Mock rate
+      solToNgn: 300000, // Mock rate
       solToUsd: 150,   // Mock rate
       lastUpdated: Date.now(),
       isStale: true
@@ -350,7 +350,7 @@ export async function nairaToSol(nairaAmount: BigNumber): Promise<BigNumber> {
   } catch (error) {
     console.warn('Using fallback conversion rate:', error);
     // Fallback to mock rate if API fails
-    return nairaAmount.dividedBy(50000);
+    return nairaAmount.dividedBy(300000);
   }
 }
 
@@ -365,7 +365,7 @@ export function nairaToSolSync(nairaAmount: BigNumber): BigNumber {
     solAmount = nairaAmount.dividedBy(priceService['priceData'].solToNgn);
   } else {
     // Fallback to mock rate if no cached data
-    solAmount = nairaAmount.dividedBy(50000);
+    solAmount = nairaAmount.dividedBy(300000);
   }
 
   // Ensure minimum SOL amount and round to 9 decimal places
